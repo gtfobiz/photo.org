@@ -151,20 +151,7 @@ namespace Photo.org
 
             if (version < 9)
             {
-                using (SQLiteCommand comm = new SQLiteCommand())
-                {
-                    comm.Connection = m_Connection;
-                    sql = "CREATE TRIGGER TR_PHOTO_CATEGORY AFTER INSERT ON PHOTO_CATEGORY FOR EACH ROW ";
-                    sql += "BEGIN ";
-                    sql += "INSERT INTO PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
-                    sql += "SELECT NEW.PHOTO_ID, ac.CATEGORY_ID, 'A' ";
-                    sql += "FROM CATEGORY_PATH cp JOIN AUTO_CATEGORY ac ON ac.SOURCE_ID = cp.CATEGORY_ID ";
-                    sql += "WHERE cp.TARGET_ID = NEW.CATEGORY_ID AND NOT EXISTS (";
-                    sql += "SELECT 1 FROM PHOTO_CATEGORY WHERE PHOTO_ID = NEW.PHOTO_ID AND CATEGORY_ID = ac.CATEGORY_ID AND SOURCE = 'A'); ";
-                    sql += "END;";
-                    comm.CommandText = sql;
-                    comm.ExecuteNonQuery();
-                }
+                CreatePhotoCategoryTrigger();
                 UpdateVersionInfo(9);
             }
 

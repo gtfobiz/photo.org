@@ -328,11 +328,25 @@ namespace Photo.org
                     label.Top = 5;
                     label.Left = offset;
                     offset = label.Left + label.Width + 2;
+                }
+
+            // temporary implementation
+            foreach (Guid categoryId in m_Photo.AutoCategories)
+                if (categoryId != Guids.Hidden)
+                {
+                    label = new CategoryLabel(Categories.GetCategoryByGuid(categoryId));
+                    label.Font = new Font(label.Font, FontStyle.Italic);
+
+                    m_CategoriesPanel.Controls.Add(label);
+                    label.Top = 5;
+                    label.Left = offset;
+                    offset = label.Left + label.Width + 2;
                 }           
         }
 
         private static void DeleteCategoryLabel(CategoryLabel categoryLabel)
         {
+            // mites kun kaikilla ei oo eventtiä?
             categoryLabel.MouseClick -= new MouseEventHandler(label_MouseClick);
             categoryLabel.Dispose();
         }

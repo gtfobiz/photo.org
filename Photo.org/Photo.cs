@@ -22,6 +22,14 @@ namespace Photo.org
         private DateTime m_ImportDate = DateTime.MinValue;
 
         private List<Guid> m_Categories = null;
+        private List<Guid> m_AutoCategories = null;
+
+        public List<Guid> AutoCategories
+        {
+            get { return m_AutoCategories; }
+            set { m_AutoCategories = value; }
+        }
+
         private bool m_Busy = false;
 
         public Image LoadImage()
@@ -239,4 +247,16 @@ namespace Photo.org
         }
     }
 #endregion
+
+    //internal class PhotoCategory
+    //{
+    //    public Guid CategoryId = Guid.Empty;
+    //    public bool IsAutoCategory = false;
+
+    //    PhotoCategory(Guid categoryId, bool isAutoCategory)
+    //    {
+    //        CategoryId = categoryId;
+    //        IsAutoCategory = isAutoCategory;
+    //    }
+    //}
 }

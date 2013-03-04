@@ -522,7 +522,7 @@ namespace Photo.org
             }
 
             Dictionary<string, object> parameters = new Dictionary<string, object>();
-            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE ";
+            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
             sql += "from PHOTO ph ";
             sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
             sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
@@ -556,6 +556,7 @@ namespace Photo.org
             dcc = ds.Tables["Categories"].Columns;
             dcc.Add("PHOTO_ID");
             dcc.Add("CATEGORY_ID");
+            dcc.Add("SOURCE");
 
             Guid photoId = Guid.Empty, lastPhotoId = Guid.Empty;
             DataRow resultRow = null;
@@ -581,6 +582,7 @@ namespace Photo.org
                     resultRow = ds.Tables["Categories"].NewRow();
                     resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
                     resultRow["CATEGORY_ID"] = dr["CATEGORY_ID"];
+                    resultRow["SOURCE"] = dr["SOURCE"];
                     ds.Tables["Categories"].Rows.Add(resultRow);
                 }
             }
@@ -664,19 +666,9 @@ namespace Photo.org
                     comm.ExecuteNonQuery();
 
                     comm.CommandText = "create table DELETION (DELETION_ID guid not null primary key, PATH_ID guid, FILENAME nvarchar(255), RECYCLE_ONLY integer);";
-                    comm.ExecuteNonQuery();   
-
-                    string sql = "CREATE TRIGGER TR_PHOTO_CATEGORY AFTER INSERT ON PHOTO_CATEGORY FOR EACH ROW ";
-                    sql += "BEGIN ";
-                    sql += "INSERT INTO PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
-                    sql += "SELECT NEW.PHOTO_ID, ac.CATEGORY_ID, 'A' "; 
-                    sql += "FROM CATEGORY_PATH cp JOIN AUTO_CATEGORY ac ON ac.SOURCE_ID = cp.CATEGORY_ID "; 
-                    sql += "WHERE cp.TARGET_ID = NEW.CATEGORY_ID AND NOT EXISTS (";
-                    sql += "SELECT 1 FROM PHOTO_CATEGORY WHERE PHOTO_ID = NEW.PHOTO_ID AND CATEGORY_ID = ac.CATEGORY_ID AND SOURCE = 'A'); ";
-                    sql += "END;";
-                    comm.CommandText = sql;
                     comm.ExecuteNonQuery();
 
+                    CreatePhotoCategoryTrigger();
                     Categories.InsertTestCategories();
                 }
 
@@ -861,6 +853,35 @@ namespace Photo.org
             Status.Busy = false;
         }
 
+        internal static void DropPhotoCategoryTrigger()
+        {
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                comm.Connection = m_Connection;
+                comm.CommandText = "drop trigger TR_PHOTO_CATEGORY";
+                comm.ExecuteNonQuery();
+            }
+        }
+
+        internal static void CreatePhotoCategoryTrigger()
+        {
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                string sql = "CREATE TRIGGER TR_PHOTO_CATEGORY AFTER INSERT ON PHOTO_CATEGORY FOR EACH ROW ";
+                sql += "BEGIN ";
+                sql += "INSERT INTO PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
+                sql += "SELECT NEW.PHOTO_ID, ac.CATEGORY_ID, 'A' ";
+                sql += "FROM CATEGORY_PATH cp JOIN AUTO_CATEGORY ac ON ac.SOURCE_ID = cp.CATEGORY_ID ";
+                sql += "WHERE cp.TARGET_ID = NEW.CATEGORY_ID AND NOT EXISTS (";
+                sql += "SELECT 1 FROM PHOTO_CATEGORY WHERE PHOTO_ID = NEW.PHOTO_ID AND CATEGORY_ID = ac.CATEGORY_ID AND SOURCE = 'A'); ";
+                sql += "END;";
+
+                comm.Connection = m_Connection;                
+                comm.CommandText = sql;
+                comm.ExecuteNonQuery();
+            }
+        }
+
         internal static void DoMaintenance()
         {            
             Status.Busy = true;            
@@ -871,6 +892,7 @@ namespace Photo.org
             string sql = "";      
             int orphanBranches = 0, orphanThumbFiles = 0, obsoletePaths = 0;
 
+            DropPhotoCategoryTrigger();
             using (SQLiteCommand comm = new SQLiteCommand())
             {
                 sql = "delete from PHOTO_CATEGORY where SOURCE = 'A'";
@@ -880,6 +902,7 @@ namespace Photo.org
                 comm.ExecuteNonQuery();
             }
             ApplyAutoCategories();
+            CreatePhotoCategoryTrigger();
 
             // connect orphan branches to root
             using (SQLiteCommand comm = new SQLiteCommand())

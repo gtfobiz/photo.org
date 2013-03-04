@@ -506,11 +506,15 @@ namespace Photo.org
                 photo.Filename = dr["FILENAME"].ToString();
                 photo.FileSize = long.Parse(dr["FILESIZE"].ToString());
                 photo.ImportDate = DateTime.Parse(dr["IMPORT_DATE"].ToString());
-                photo.Categories = new List<Guid>();                
+                photo.Categories = new List<Guid>();
+                photo.AutoCategories = new List<Guid>();                
 
                 foreach (DataRow categoryRow in ds.Tables["Categories"].Select("PHOTO_ID = '" + photo.Id.ToString() + "'"))
                 {
-                    photo.Categories.Add(new Guid(categoryRow["CATEGORY_ID"].ToString()));
+                    if (categoryRow["SOURCE"].ToString() == "U")
+                        photo.Categories.Add(new Guid(categoryRow["CATEGORY_ID"].ToString()));
+                    else
+                        photo.AutoCategories.Add(new Guid(categoryRow["CATEGORY_ID"].ToString()));
                 }
 
                 AddPhoto(photo);
