@@ -1,0 +1,27 @@
+MENU
+
+THUMBNAILS
+- filter ei löydä kaikkia kuvia (esim. sohvakuva)
+- group barin klikkaus valkkaa kaikki sen groupin kuvat
+- thumbnailien koko valittavissa
+- resolution, width, height järjestystekijäksi
+- random-järjestys ei ole random
+- tallenna järjestys
+
+DATABASE
+
+VIEWER
+- jos tuhoo kategorian, ni thumbnailit häviää -> pitäis sulkee viewer kans tms
+- jos piilottaa kategorian, viewer menee piiloo, mut palkit jää
+
+new category as child -> parentin nimi
+lista autokategorioista
+
+kategorian muutos kuvalle -> haetaan kategoriat uusiks
+
+kuvien poisto
+files to delete taulu
+
+kategorioiden värit
+
+maintenance kaatuu autokategorioiden kanssa
