@@ -248,6 +248,7 @@ namespace Photo.org
         {
             SortedDictionary<string, Photo> sorter = new SortedDictionary<string, Photo>();
 
+            Random random = new Random();
             foreach (Photo photo in m_Photos)
                 switch (this.SortBy)
                 {
@@ -264,7 +265,8 @@ namespace Photo.org
                         sorter.Add(photo.ImportDate.ToString("yyyyMMddhhmmss") + "|" + photo.Id.ToString(), photo);
                         break;
                     case SortBy.Random:
-                        sorter.Add(new Random().Next(0, 1000000).ToString() + "|" + photo.Id.ToString(), photo);
+                        string test = random.Next(0, 1000000).ToString();
+                        sorter.Add(test + "|" + photo.Id.ToString(), photo);
                         break;
                 }                
 

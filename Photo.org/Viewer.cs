@@ -346,7 +346,6 @@ namespace Photo.org
 
         private static void DeleteCategoryLabel(CategoryLabel categoryLabel)
         {
-            // mites kun kaikilla ei oo eventtiä?
             categoryLabel.MouseClick -= new MouseEventHandler(label_MouseClick);
             categoryLabel.Dispose();
         }
@@ -358,6 +357,12 @@ namespace Photo.org
 
             if (e.Button != MouseButtons.Right || e.Clicks != 1)
                 return;
+
+            if (Common.IsShiftPressed())
+            {
+                RemovePhotoCategory((sender as CategoryLabel).Category.Id);
+                return;
+            }
 
             ShowLabelContextMenu(sender as CategoryLabel, e.Location);            
         }
