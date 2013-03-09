@@ -4,8 +4,7 @@ THUMBNAILS
 - filter ei löydä kaikkia kuvia (esim. sohvakuva)
 - group barin klikkaus valkkaa kaikki sen groupin kuvat
 - thumbnailien koko valittavissa
-- resolution, width, height järjestystekijäksi
-- random-järjestys ei ole random
+- resolution, width, height järjestystekijäksi, kuvan aikaleima exifistä -> järjestystekijä
 - tallenna järjestys
 
 DATABASE
@@ -24,4 +23,4 @@ files to delete taulu
 
 kategorioiden värit
 
-maintenance kaatuu autokategorioiden kanssa
+

@@ -484,6 +484,7 @@ namespace Photo.org
             m_Category = category;
 
             this.Text = m_Category.Name;
+            this.ForeColor = category.Color;
         }
 
         protected override void OnMouseEnter(EventArgs e)

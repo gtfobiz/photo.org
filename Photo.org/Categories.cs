@@ -551,6 +551,12 @@ namespace Photo.org
                         mi.Click += new EventHandler(contextMenuItem_Click);
                         menu.MenuItems.Add(mi);
                     }
+
+                    mi = new MenuItem();
+                    mi.Text = "Set category color";
+                    mi.Name = "SetCategoryColor";
+                    mi.Click += new EventHandler(contextMenuItem_Click);
+                    menu.MenuItems.Add(mi);
                 }
             }
 
@@ -607,6 +613,11 @@ namespace Photo.org
                     break;
                 case "AddAutoCategory":
                     AddAutoCategory(m_MenuTargetNode.Tag as Category);
+                    break;
+                case "SetCategoryColor":
+                    using (ColorDialog cd = new ColorDialog())
+                        if (cd.ShowDialog() == DialogResult.OK)
+                            (m_MenuTargetNode.Tag as Category).Color = cd.Color;
                     break;
             }
 
@@ -668,7 +679,7 @@ namespace Photo.org
         public Guid ParentId = Guid.Empty;
         public string Name = "";
         public long PhotoCount = 0;
-
+        public Color Color = Color.Black;
         //private int m_PhotoCount = 0;
 
         //public int PhotoCount
