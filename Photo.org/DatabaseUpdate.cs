@@ -15,7 +15,6 @@ namespace Photo.org
             //GetOne("SELECT name FROM sqlite_master WHERE type='table' AND name='PARAMETER'")
 
             int version = 0;
-            string sql = "";
 
             try
             {

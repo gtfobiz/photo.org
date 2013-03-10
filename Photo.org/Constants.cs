@@ -6,7 +6,7 @@ using System.Text;
 namespace Photo.org
 {
     internal enum Component { Photos, Viewer };
-    internal enum SortBy { Filename, Folder, Filesize, ImportDate, Random };
+    internal enum SortBy { Filename, Folder, Filesize, ImportDate, Width, Height, Resolution, EXIFDate, Random };
 
     internal static class Guids
     {

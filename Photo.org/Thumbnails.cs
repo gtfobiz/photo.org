@@ -191,7 +191,7 @@ namespace Photo.org
                     if (!photo.Categories.Contains(Guids.Hidden))
                     {
                         photo.Categories.Add(Guids.Hidden);
-                        Database.InsertPhotoCategory(photo.Id, Guids.Hidden, "U");
+                        Database.InsertPhotoCategory(photo.Id, Guids.Hidden);
                     }
             }
             else
@@ -200,7 +200,7 @@ namespace Photo.org
                     if (photo.Categories.Contains(Guids.Hidden))
                     {
                         photo.Categories.Remove(Guids.Hidden);
-                        Database.DeletePhotoCategory(photo.Id, Guids.Hidden, "U");
+                        Database.DeletePhotoCategory(photo.Id, Guids.Hidden);
                     }
             }
         }
@@ -246,7 +246,7 @@ namespace Photo.org
                     continue;
 
                 foreach (Category category in categories)
-                    if (photo.Categories.Contains(category.Id))
+                    if (photo.Categories.Contains(category.Id) || photo.AutoCategories.Contains(category.Id))
                         m_ThumbnailView.Photos.Remove(photo);
             }
 
@@ -486,7 +486,7 @@ namespace Photo.org
             Status.ShowProgress();
 
             ClearPhotos();
-            Categories.HighlightCategories(new List<Guid>());
+            //Categories.HighlightCategories(new List<Guid>());
 
             //m_ListView.BeginUpdate();            
 

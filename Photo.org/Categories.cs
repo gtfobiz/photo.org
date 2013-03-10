@@ -17,13 +17,13 @@ namespace Photo.org
 
         internal static Guid LastCategoryId = Guid.Empty;
 
-        internal static void HighlightCategories(List<Guid> categories)
-        {
-            foreach (TreeNode tn in m_TreeView.Nodes)
-            {
-                HighlightCategoriesOnBranch(tn, categories);
-            }
-        }
+        //internal static void HighlightCategories(List<Guid> categories)
+        //{
+        //    foreach (TreeNode tn in m_TreeView.Nodes)
+        //    {
+        //        HighlightCategoriesOnBranch(tn, categories);
+        //    }
+        //}
 
         internal static void InsertTestCategories()
         {
@@ -49,10 +49,9 @@ namespace Photo.org
         {
             LastCategoryId = categoryId;
 
-            Database.InsertPhotoCategory(photo.Id, categoryId, PhotoCategorySource.AddedByUser);
-            if (!photo.Categories.Contains(categoryId))
-                photo.Categories.Add(categoryId);
-
+            Database.InsertPhotoCategory(photo.Id, categoryId);
+            Database.QueryPhotoCategories(photo);
+           
             CategoryAssignmentChanged(photo, m_Categories[categoryId], false);
         }
 
@@ -60,9 +59,9 @@ namespace Photo.org
         {
             LastCategoryId = categoryId;
 
-            Database.DeletePhotoCategory(photo.Id, categoryId, PhotoCategorySource.AddedByUser);
-            if (photo.Categories.Contains(categoryId))
-                photo.Categories.Remove(categoryId);
+            Database.DeletePhotoCategory(photo.Id, categoryId);
+            Database.ApplyAutoCategories(photo.Id, Guid.Empty);
+            Database.QueryPhotoCategories(photo);
 
             CategoryAssignmentChanged(photo, m_Categories[categoryId], true);
         }
@@ -117,8 +116,8 @@ namespace Photo.org
 
             Database.Commit();
 
-            if (photos.Count == 1)
-                HighlightCategories(photos[0].Categories);
+            //if (photos.Count == 1)
+            //    HighlightCategories(photos[0].Categories);
 
             Status.HideProgress();
         }
@@ -151,18 +150,18 @@ namespace Photo.org
 
 #region private methods
 
-        private static void HighlightCategoriesOnBranch(TreeNode tn, List<Guid> categories)
-        {
-            if (categories.Contains(new Guid(tn.Name)))
-                tn.ForeColor = Color.Orange;
-            else
-                tn.ForeColor = Color.Black;
+        //private static void HighlightCategoriesOnBranch(TreeNode tn, List<Guid> categories)
+        //{
+        //    if (categories.Contains(new Guid(tn.Name)))
+        //        tn.ForeColor = Color.Orange;
+        //    else
+        //        tn.ForeColor = Color.Black;
 
-            foreach (TreeNode child in tn.Nodes)
-            {
-                HighlightCategoriesOnBranch(child, categories);
-            }
-        }
+        //    foreach (TreeNode child in tn.Nodes)
+        //    {
+        //        HighlightCategoriesOnBranch(child, categories);
+        //    }
+        //}
 
         private static void FetchPhotos()
         {
@@ -608,7 +607,7 @@ namespace Photo.org
                     break;
                 case "DeleteCategory":
                     DeleteCategoryByNodeExt(m_MenuTargetNode);
-                    HighlightCategories(new List<Guid>());
+                    //HighlightCategories(new List<Guid>());
                     Thumbnails.ClearPhotos();
                     break;
                 case "AddAutoCategory":

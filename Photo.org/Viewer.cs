@@ -20,7 +20,7 @@ namespace Photo.org
         private static CategoryLabel m_ActiveCategoryLabel = null;
         private static Timer m_SlideShowTimer = new Timer();
         private static Rectangle m_SelectionRectangle = Rectangle.Empty;
-        private static bool m_PaintingArea = false;
+        //private static bool m_PaintingArea = false;
 
         /// <summary>
         /// Initializes the Viewer component
@@ -150,7 +150,7 @@ namespace Photo.org
                 if (!m_Photo.Categories.Contains(Guids.Hidden))
                 {
                     m_Photo.Categories.Add(Guids.Hidden);
-                    Database.InsertPhotoCategory(m_Photo.Id, Guids.Hidden, "U");
+                    Database.InsertPhotoCategory(m_Photo.Id, Guids.Hidden);
                 }
             }
             else
@@ -158,7 +158,7 @@ namespace Photo.org
                 if (m_Photo.Categories.Contains(Guids.Hidden))
                 {
                     m_Photo.Categories.Remove(Guids.Hidden);
-                    Database.DeletePhotoCategory(m_Photo.Id, Guids.Hidden, "U");
+                    Database.DeletePhotoCategory(m_Photo.Id, Guids.Hidden);
                 }
             }
 
@@ -237,7 +237,7 @@ namespace Photo.org
 
         internal static void HandleZoomLevel()
         {
-            decimal zoomRatio = 2;
+            //decimal zoomRatio = 2;
 
             //int width = m_Image.Width, height = m_Image.Height;
             //width = Convert.ToInt32((decimal)width * zoomRatio);
@@ -370,7 +370,7 @@ namespace Photo.org
         private static void RemovePhotoCategory(Guid categoryId)
         {
             Categories.RemovePhotoCategory(m_Photo, categoryId);
-            Categories.HighlightCategories(m_Photo.Categories);            
+//            Categories.HighlightCategories(m_Photo.Categories);            
         }
 
         private static void ShowLabelContextMenu(CategoryLabel categoryLabel, Point location)

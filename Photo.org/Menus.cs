@@ -68,6 +68,21 @@ namespace Photo.org
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderResolution", "&Resolution"));
+            menu.Name = "View_ThumbnailOrder_Resolution";
+            menu.Click += new EventHandler(SetThumbnailOrder);
+            lesserParent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderWidth", "&Width"));
+            menu.Name = "View_ThumbnailOrder_Width";
+            menu.Click += new EventHandler(SetThumbnailOrder);
+            lesserParent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderHeight", "&Height"));
+            menu.Name = "View_ThumbnailOrder_Height";
+            menu.Click += new EventHandler(SetThumbnailOrder);
+            lesserParent.DropDownItems.Add(menu);
+
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderRandom", "&Random"));
             menu.Name = "View_ThumbnailOrder_Random";
             menu.Click += new EventHandler(SetThumbnailOrder);
@@ -141,6 +156,15 @@ namespace Photo.org
                     break;
                 case "View_ThumbnailOrder_ImportDate":
                     Thumbnails.SetSortBy(SortBy.ImportDate);
+                    break;
+                case "View_ThumbnailOrder_Resolution":
+                    Thumbnails.SetSortBy(SortBy.Resolution);
+                    break;
+                case "View_ThumbnailOrder_Width":
+                    Thumbnails.SetSortBy(SortBy.Width);
+                    break;
+                case "View_ThumbnailOrder_Height":
+                    Thumbnails.SetSortBy(SortBy.Height);
                     break;
                 case "View_ThumbnailOrder_Random":
                     Thumbnails.SetSortBy(SortBy.Random);

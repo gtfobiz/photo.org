@@ -264,8 +264,17 @@ namespace Photo.org
                     case SortBy.ImportDate:
                         sorter.Add(photo.ImportDate.ToString("yyyyMMddhhmmss") + "|" + photo.Id.ToString(), photo);
                         break;
+                    case SortBy.Resolution:
+                        sorter.Add((photo.Width * photo.Height).ToString("0000000000") + "|" + photo.Id.ToString(), photo);
+                        break;
+                    case SortBy.Width:
+                        sorter.Add(photo.Width.ToString("00000") + "|" + photo.Id.ToString(), photo);
+                        break;
+                    case SortBy.Height:
+                        sorter.Add(photo.Height.ToString("00000") + "|" + photo.Id.ToString(), photo);
+                        break;
                     case SortBy.Random:
-                        string test = random.Next(0, 1000000).ToString();
+                        string test = random.Next(0, 1000000).ToString("00000000");
                         sorter.Add(test + "|" + photo.Id.ToString(), photo);
                         break;
                 }                

@@ -324,8 +324,7 @@ namespace Photo.org
         /// </summary>
         /// <param name="photoId"></param>
         /// <param name="categoryId"></param>
-        /// <param name="source"></param>
-        internal static void InsertPhotoCategory(Guid photoId, Guid categoryId, string source)
+        internal static void InsertPhotoCategory(Guid photoId, Guid categoryId)
         {
             using (SQLiteCommand comm = new SQLiteCommand())
             {
@@ -333,7 +332,7 @@ namespace Photo.org
                 comm.CommandText = "insert into PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) values (@photoId, @categoryId, @source)";
                 AddParameter(comm, "photoId", DbType.Guid).Value = photoId;
                 AddParameter(comm, "categoryId", DbType.Guid).Value = categoryId;
-                AddParameter(comm, "source", DbType.StringFixedLength).Value = source;
+                AddParameter(comm, "source", DbType.StringFixedLength).Value = "U";
                 comm.ExecuteNonQuery();
             }
         }
@@ -412,7 +411,7 @@ namespace Photo.org
             }
         }
 
-        internal static void DeletePhotoCategory(Guid photoId, Guid categoryId, string source)
+        internal static void DeletePhotoCategory(Guid photoId, Guid categoryId)
         {
             using (SQLiteCommand comm = new SQLiteCommand())
             {
@@ -420,8 +419,13 @@ namespace Photo.org
                 comm.CommandText = "delete from PHOTO_CATEGORY where PHOTO_ID = @photoId and CATEGORY_ID = @categoryId and SOURCE = @source";
                 AddParameter(comm, "photoId", DbType.Guid).Value = photoId;
                 AddParameter(comm, "categoryId", DbType.Guid).Value = categoryId;
-                AddParameter(comm, "source", DbType.StringFixedLength).Value = source;
+                AddParameter(comm, "source", DbType.StringFixedLength).Value = "U";
                 comm.ExecuteNonQuery();
+
+                comm.CommandText = "delete from PHOTO_CATEGORY where PHOTO_ID = @photoId and SOURCE = 'A'";
+                comm.ExecuteNonQuery();
+
+
             }
         }
 
@@ -827,6 +831,11 @@ namespace Photo.org
 
         internal static void ApplyAutoCategories(Guid sourceId)
         {
+            ApplyAutoCategories(Guid.Empty, sourceId);
+        }
+
+        internal static void ApplyAutoCategories(Guid photoId, Guid sourceId)
+        {
             Status.Busy = true;
            
             using (SQLiteCommand comm = new SQLiteCommand())
@@ -840,11 +849,15 @@ namespace Photo.org
                     sql += "from PHOTO_CATEGORY pc ";
                     sql += "join CATEGORY_PATH cp on cp.CATEGORY_ID = pc.CATEGORY_ID ";
                     sql += "join AUTO_CATEGORY ac on ac.SOURCE_ID = cp.TARGET_ID ";
+                    if (photoId != Guid.Empty)
+                        sql += "and pc.PHOTO_ID = @photoId ";
                     if (sourceId != Guid.Empty)
                         sql += "and ac.SOURCE_ID = @sourceId ";
                     sql += "where not exists(select 1 from PHOTO_CATEGORY x where x.PHOTO_ID = pc.PHOTO_ID and x.CATEGORY_ID = ac.CATEGORY_ID and x.SOURCE = 'A')";
                     
                     comm.CommandText = sql;
+                    if (photoId != Guid.Empty)
+                        AddParameter(comm, "photoId", DbType.Guid).Value = photoId;
                     if (sourceId != Guid.Empty)
                         AddParameter(comm, "sourceId", DbType.Guid).Value = sourceId;
                 } while (comm.ExecuteNonQuery() > 0);
@@ -1004,6 +1017,22 @@ namespace Photo.org
         {
             object o = GetOne("select 1 from PHOTO where HASH = '" + hash + "'");
             return (o == null || o.ToString() == "1");
-        }        
+        }
+
+        internal static void QueryPhotoCategories(Photo photo)
+        {
+            string sql = "select pc.CATEGORY_ID, pc.SOURCE ";
+            sql += "from PHOTO_CATEGORY pc ";
+            sql += "where pc.PHOTO_ID = @photoId";
+
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            parameters.Add("@photoId", photo.Id);
+
+            photo.Categories = new List<Guid>();
+            photo.AutoCategories = new List<Guid>();
+
+            foreach (DataRow dr in Query(sql, parameters).Rows)
+                (dr["SOURCE"].ToString() == "U" ? photo.Categories : photo.AutoCategories).Add(new Guid(dr["CATEGORY_ID"].ToString()));
+        }
     }
 }
