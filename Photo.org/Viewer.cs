@@ -370,7 +370,6 @@ namespace Photo.org
         private static void RemovePhotoCategory(Guid categoryId)
         {
             Categories.RemovePhotoCategory(m_Photo, categoryId);
-//            Categories.HighlightCategories(m_Photo.Categories);            
         }
 
         private static void ShowLabelContextMenu(CategoryLabel categoryLabel, Point location)

@@ -16,15 +16,7 @@ namespace Photo.org
         internal static event CategoryAssignmentChangedDelegate CategoryAssignmentChanged;
 
         internal static Guid LastCategoryId = Guid.Empty;
-
-        //internal static void HighlightCategories(List<Guid> categories)
-        //{
-        //    foreach (TreeNode tn in m_TreeView.Nodes)
-        //    {
-        //        HighlightCategoriesOnBranch(tn, categories);
-        //    }
-        //}
-
+        
         internal static void InsertTestCategories()
         {
             m_TreeView.ClearNodes();
@@ -114,10 +106,7 @@ namespace Photo.org
                 Status.SetProgress(++i);
             }
 
-            Database.Commit();
-
-            //if (photos.Count == 1)
-            //    HighlightCategories(photos[0].Categories);
+            Database.Commit();            
 
             Status.HideProgress();
         }
@@ -149,19 +138,6 @@ namespace Photo.org
 #endregion     
 
 #region private methods
-
-        //private static void HighlightCategoriesOnBranch(TreeNode tn, List<Guid> categories)
-        //{
-        //    if (categories.Contains(new Guid(tn.Name)))
-        //        tn.ForeColor = Color.Orange;
-        //    else
-        //        tn.ForeColor = Color.Black;
-
-        //    foreach (TreeNode child in tn.Nodes)
-        //    {
-        //        HighlightCategoriesOnBranch(child, categories);
-        //    }
-        //}
 
         private static void FetchPhotos()
         {
@@ -551,6 +527,8 @@ namespace Photo.org
                         menu.MenuItems.Add(mi);
                     }
 
+                    menu.MenuItems.Add("-");
+
                     mi = new MenuItem();
                     mi.Text = "Set category color";
                     mi.Name = "SetCategoryColor";
@@ -607,7 +585,6 @@ namespace Photo.org
                     break;
                 case "DeleteCategory":
                     DeleteCategoryByNodeExt(m_MenuTargetNode);
-                    //HighlightCategories(new List<Guid>());
                     Thumbnails.ClearPhotos();
                     break;
                 case "AddAutoCategory":

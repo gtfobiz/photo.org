@@ -368,63 +368,6 @@ namespace Photo.org
             m_ThumbnailView.Visible = false;
         }
 
-#region events
-
-        static void m_ListView_AfterLabelEdit(object sender, LabelEditEventArgs e)
-        {
-            //if (e.Label == null)
-            //{
-            //    e.CancelEdit = true;
-            //    return;
-            //}
-
-            //Status.Busy = true;
-
-            //Photo photo = (Photo)m_ListView.Items[e.Item].Tag;
-
-            //string newFilename = e.Label;
-            //string extension = new FileInfo(photo.FilenameWithPath).Extension;
-            //if (!newFilename.ToLower().EndsWith(extension.ToLower()))
-            //    newFilename += extension;
-
-            //try
-            //{
-            //    File.Move(photo.FilenameWithPath, photo.Path + @"\" + newFilename);
-
-            //    photo.Filename = newFilename;
-            //    Database.UpdatePhotoLocation(photo.Id, photo.Path, photo.Filename);
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.ToString());
-            //}
-
-            //m_ListView.LabelEdit = false;
-
-            //Status.Busy = false;
-            //Status.LabelEdit = false;
-        }
-        
-        static void m_ListView_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //if (m_ListView.SelectedItems.Count == 1)
-            //    Categories.HighlightCategories((m_ListView.SelectedItems[0].Tag as Photo).Categories);
-            //else
-            //    Categories.HighlightCategories(new List<Guid>());
-        }     
-
-        static void m_ListView_ItemDrag(object sender, ItemDragEventArgs e)
-        {
-            //List<Photo> photos = new List<Photo>((sender as ListView).SelectedItems.Count);
-            //foreach(ListViewItem item in (sender as ListView).SelectedItems) 
-            //{
-            //    photos.Add((Photo)item.Tag);
-            //}
-            //m_ListView.DoDragDrop(photos, DragDropEffects.Link);
-        }
-
-#endregion
-
         /// <summary>
         /// Clears thumbnails and the work list.
         /// </summary>
@@ -470,7 +413,7 @@ namespace Photo.org
             { 
             }
         }
-
+      
         /// <summary>
         /// Fetches photos that belong to all required categories.
         /// </summary>
@@ -485,10 +428,7 @@ namespace Photo.org
 
             Status.ShowProgress();
 
-            ClearPhotos();
-            //Categories.HighlightCategories(new List<Guid>());
-
-            //m_ListView.BeginUpdate();            
+            ClearPhotos();           
 
             DataSet ds = Database.QueryPhotosByCategories(required);
 
@@ -524,10 +464,6 @@ namespace Photo.org
             m_ThumbnailView.EndUpdate();
 
             Status.HideProgress();
-
-            //m_ListView.EndUpdate();
-
-            //RefreshWorklist();
         }
 
 #region context menus
@@ -536,7 +472,7 @@ namespace Photo.org
         {
             ContextMenu menu = new ContextMenu();
             MenuItem mi = null;
-            //bool addSeparator = false;
+            bool addSeparator = false;            
 
             if (m_ThumbnailView.SelectedItems.Count == 1)
             {
@@ -552,7 +488,7 @@ namespace Photo.org
                 mi.Click += new EventHandler(contextMenuItem_Click);
                 menu.MenuItems.Add(mi);
 
-                //addSeparator = true;
+                addSeparator = true;
             }            
 
             //if (m_ListView.SelectedItems.Count > 0)
@@ -569,9 +505,17 @@ namespace Photo.org
             //    mi.Click += new EventHandler(contextMenuItem_Click);
             //    menu.MenuItems.Add(mi);
             //}
+
+            if (addSeparator)                
+                menu.MenuItems.Add("-");
+
+            mi = new MenuItem();
+            mi.Text = Multilingual.GetText("thumbnailsContextMenu", "filterMissingFiles", "Filter missing files");
+            mi.Name = "FilterMissingFiles";
+            mi.Click += new EventHandler(contextMenuItem_Click);
+            menu.MenuItems.Add(mi);
  
-            if (menu.MenuItems.Count > 0) 
-                menu.Show(m_ThumbnailView, location);
+            menu.Show(m_ThumbnailView, location);
         }
 
         static void contextMenuItem_Click(object sender, EventArgs e)
@@ -587,7 +531,20 @@ namespace Photo.org
                 case "OpenContainingFolder":
                     OpenContainingFolder();
                     break;
+                case "FilterMissingFiles":
+                    FilterMissingFiles();
+                    break;
             }
+        }
+
+        private static void FilterMissingFiles()
+        {
+            Status.Busy = true;
+            for (int i = m_ThumbnailView.Photos.Count-1; i >= 0; i--)
+                if (m_ThumbnailView.Photos[i].Exists())
+                    m_ThumbnailView.Photos.RemoveAt(i);
+            m_ThumbnailView.RefreshOrWhatever();
+            Status.Busy = false;
         }
 
         private static void OpenContainingFolder()

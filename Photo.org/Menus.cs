@@ -186,7 +186,7 @@ namespace Photo.org
                     break;
                 case "File_Exit":
                     Common.Exit();
-                    break;
+                    break;                
                 case "Tools_Maintenance":
                     if (!Status.ReadOnly)
                         Database.DoMaintenance();

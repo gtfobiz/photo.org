@@ -837,13 +837,13 @@ namespace Photo.org
         internal static void ApplyAutoCategories(Guid photoId, Guid sourceId)
         {
             Status.Busy = true;
-           
+
             using (SQLiteCommand comm = new SQLiteCommand())
-            {               
-                comm.Connection = m_Connection;                
+            {
+                comm.Connection = m_Connection;
                 do
                 {
-                    string sql = "insert into PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
+                    string sql = "insert or ignore into PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
                     sql += "select distinct ";
                     sql += "pc.PHOTO_ID, ac.CATEGORY_ID, 'A' ";
                     sql += "from PHOTO_CATEGORY pc ";
@@ -854,7 +854,7 @@ namespace Photo.org
                     if (sourceId != Guid.Empty)
                         sql += "and ac.SOURCE_ID = @sourceId ";
                     sql += "where not exists(select 1 from PHOTO_CATEGORY x where x.PHOTO_ID = pc.PHOTO_ID and x.CATEGORY_ID = ac.CATEGORY_ID and x.SOURCE = 'A')";
-                    
+
                     comm.CommandText = sql;
                     if (photoId != Guid.Empty)
                         AddParameter(comm, "photoId", DbType.Guid).Value = photoId;
@@ -956,47 +956,7 @@ namespace Photo.org
                 comm.Connection = m_Connection;
                 comm.CommandText = sql;
                 obsoletePaths = comm.ExecuteNonQuery();
-            }
-
-            // find missing photos (no further actions for now)
-            sql = "select pa.PATH, ph.FILENAME from PHOTO ph ";
-            sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
-            sql += "order by pa.PATH, ph.FILENAME";
-            dt = Query(sql, null);
-
-            string path = "";
-            string[] files = null;
-            List<string> missingPhotos = new List<string>();
-            List<string> missingFolders = new List<string>();
-            foreach (DataRow dr in dt.Rows)
-            {
-                if (dr["PATH"].ToString() != path)
-                {
-                    try
-                    {
-                        path = dr["PATH"].ToString();
-                        files = System.IO.Directory.GetFiles(path);
-                        for (int i = 0; i < files.Length; i++)
-                            files[i] = files[i].Substring(path.Length + 1).ToLower();
-                    }
-                    catch
-                    {
-                        missingFolders.Add(path);
-                    }
-                }                
-
-                if (!files.Contains(dr["FILENAME"].ToString().ToLower()))
-                    missingPhotos.Add(path + @"\" + dr["FILENAME"].ToString());
-            }
-
-            if (missingFolders.Count > 0)
-            {
-                string folders = "";
-                foreach (string folder in missingFolders)
-                    folders += (folder == "" ? "" : ",\n") + folder;
-
-                MessageBox.Show("Missing folders:\n\n" + folders);
-            }
+            }         
 
             //rebuild categorypath
             //backup
