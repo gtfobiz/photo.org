@@ -172,7 +172,7 @@ namespace Photo.org
             }
 
             Guid id = Guid.NewGuid();
-            Category category = new Category(id, parent, name, 0, 0);
+            Category category = new Category(id, parent, name, 0, DBNull.Value);
             m_Categories.Add(id, category);
 
             Database.BeginTransaction();
