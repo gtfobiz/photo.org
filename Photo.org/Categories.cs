@@ -172,7 +172,7 @@ namespace Photo.org
             }
 
             Guid id = Guid.NewGuid();
-            Category category = new Category(id, parent, name, 0);
+            Category category = new Category(id, parent, name, 0, 0);
             m_Categories.Add(id, category);
 
             Database.BeginTransaction();
@@ -283,7 +283,7 @@ namespace Photo.org
 
             foreach (DataRow dr in Database.QueryCategories().Rows)
             {
-                m_Categories.Add((Guid)dr["CATEGORY_ID"], new Category((Guid)dr["CATEGORY_ID"], (Guid)dr["PARENT_ID"], dr["NAME"].ToString(), (long)dr["PHOTO_COUNT"]));
+                m_Categories.Add((Guid)dr["CATEGORY_ID"], new Category((Guid)dr["CATEGORY_ID"], (Guid)dr["PARENT_ID"], dr["NAME"].ToString(), (long)dr["PHOTO_COUNT"], dr["COLOR"]));
             }
 
             m_UnassignedNode = m_TreeView.Nodes.Add(Guids.Unassigned.ToString(), Multilingual.GetText("categories", "unassigned", "Unassigned"));
@@ -557,7 +557,6 @@ namespace Photo.org
             { 
                 case "HideFromResults":
                     Status.Busy = true;
-                    //m_MenuTargetNode.BackColor = Color.Pink;
                     Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MenuTargetNode), Guid.Empty);
                     Status.Busy = false;
                     break;
@@ -591,14 +590,38 @@ namespace Photo.org
                     AddAutoCategory(m_MenuTargetNode.Tag as Category);
                     break;
                 case "SetCategoryColor":
-                    using (ColorDialog cd = new ColorDialog())
-                        if (cd.ShowDialog() == DialogResult.OK)
-                            (m_MenuTargetNode.Tag as Category).Color = cd.Color;
+                    SetCategoryColor(m_MenuTargetNode);                    
                     break;
             }
 
             if (newNodeGuid != Guid.Empty)
                 EditCategoryLabel(m_TreeView.Nodes.Find(newNodeGuid.ToString(), true)[0]);
+        }
+
+        private static void SetCategoryColor(TreeNode tn)
+        {
+            using (ColorDialog cd = new ColorDialog())
+                if (cd.ShowDialog() == DialogResult.OK)
+                {
+                    //if (tn.Nodes.Count > 0)
+                        // update child nodes?
+
+                    UpdateCategoryColor(tn, cd.Color, true);
+                }
+                else
+                {
+                    // clear color?
+                }
+        }
+
+        private static void UpdateCategoryColor(TreeNode tn, Color color, bool updateChildren)
+        {
+            (tn.Tag as Category).Color = color;
+            Database.UpdateCategory(tn.Tag as Category);
+
+            if (updateChildren)
+                foreach (TreeNode node in tn.Nodes)
+                    UpdateCategoryColor(node, color, true);
         }
 
         private static void AddAutoCategory(Category category)
@@ -674,12 +697,14 @@ namespace Photo.org
         {
         }
 
-        public Category(Guid id, Guid parentId, string name, long photoCount)
+        public Category(Guid id, Guid parentId, string name, long photoCount, object color)
         {
             Id = id;
             ParentId = parentId;
             Name = name;
-            PhotoCount = photoCount;
+            PhotoCount = photoCount;            
+            long colorValue = (color == DBNull.Value ? 0 : (long)color);            
+            Color = Color.FromArgb((int)colorValue);
         }
     }
 }

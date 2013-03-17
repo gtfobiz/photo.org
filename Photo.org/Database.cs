@@ -6,6 +6,7 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace Photo.org
 {
@@ -23,7 +24,7 @@ namespace Photo.org
 
 #region private members
 
-        private const int c_DatabaseVersion = 10;
+        private const int c_DatabaseVersion = 11;
 
         private static SQLiteConnection m_Connection = null;
         private static SQLiteTransaction m_Transaction = null;
@@ -360,6 +361,23 @@ namespace Photo.org
             }
         }
 
+        internal static void UpdateCategory(Category category)
+        {
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                comm.Connection = m_Connection;
+                comm.CommandText = "update CATEGORY set PARENT_ID = @parentId, NAME = @name, COLOR = @color where CATEGORY_ID = @categoryId";
+                AddParameter(comm, "categoryId", DbType.Guid).Value = category.Id;
+                AddParameter(comm, "parentId", DbType.Guid).Value = category.ParentId;
+                AddParameter(comm, "name", DbType.String).Value = category.Name;
+                if (category.Color == Color.Empty)
+                    AddParameter(comm, "color", DbType.Int32).Value = DBNull.Value;
+                else
+                    AddParameter(comm, "color", DbType.Int32).Value = category.Color.ToArgb();
+                comm.ExecuteNonQuery();
+            }
+        }
+
 #endregion
 
 #region delete methods
@@ -603,7 +621,7 @@ namespace Photo.org
             //sql += "group by c.NAME ";
             //sql += "order by c.NAME";
 
-            string sql = "select CATEGORY_ID, PARENT_ID, NAME, 0 as PHOTO_COUNT from CATEGORY order by NAME";
+            string sql = "select CATEGORY_ID, PARENT_ID, NAME, COLOR, 0 as PHOTO_COUNT from CATEGORY order by NAME";
             return Query(sql, null);
         }
 
