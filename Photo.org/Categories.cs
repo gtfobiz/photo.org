@@ -88,7 +88,7 @@ namespace Photo.org
         internal static void SetPhotoCategory(List<Photo> photos, Guid categoryId, bool remove)
         {
             Status.ShowProgress(0, photos.Count, 0);
-            Database.BeginTransaction();
+            Database.BeginTransaction(); // I doubt this works as is
 
             int i = 0;
             foreach (Photo photo in photos)
@@ -157,6 +157,7 @@ namespace Photo.org
         private static Guid AddCategory(string name, Guid parent)
         {
             TreeNode parentNode = null;
+            object parentColor = DBNull.Value;
 
             if (parent == Guid.Empty || parent == Guids.AllFiles)
             {
@@ -169,10 +170,11 @@ namespace Photo.org
                 if (tna.Length == 0)
                     return Guid.Empty;
                 parentNode = tna[0];
+                parentColor = (long)(parentNode.Tag as Category).Color.ToArgb();
             }
 
             Guid id = Guid.NewGuid();
-            Category category = new Category(id, parent, name, 0, DBNull.Value);
+            Category category = new Category(id, parent, name, 0, parentColor);
             m_Categories.Add(id, category);
 
             Database.BeginTransaction();

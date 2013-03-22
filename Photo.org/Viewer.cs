@@ -500,7 +500,7 @@ namespace Photo.org
 
             if (this.Parent != null)
                 this.BackColor = this.Parent.BackColor;
-            this.ForeColor = Color.Black;
+            this.ForeColor = m_Category.Color;
         }
     }
 }

@@ -649,7 +649,7 @@ namespace Photo.org
                 {
                     comm.Connection = m_Connection;
 
-                    comm.CommandText = "create table CATEGORY (CATEGORY_ID guid not null primary key, PARENT_ID guid null, NAME nvarchar(50), SORT_ORDER integer null);";
+                    comm.CommandText = "create table CATEGORY (CATEGORY_ID guid not null primary key, PARENT_ID guid null, NAME nvarchar(50), SORT_ORDER integer null, COLOR integer null);";
                     comm.ExecuteNonQuery();
                     comm.CommandText = "create unique index idx_CATEGORY on CATEGORY (CATEGORY_ID);";
                     comm.ExecuteNonQuery();
