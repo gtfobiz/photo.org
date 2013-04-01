@@ -7,6 +7,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Security.Cryptography;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Photo.org
 {
@@ -77,6 +78,11 @@ namespace Photo.org
             {
                 System.Diagnostics.Trace.WriteLine(pi.Id.ToString() + "\t" + System.Text.Encoding.Default.GetString(pi.Value));
             }
+        }
+
+        static public void SendToRecycleBin(string filename)
+        {
+            FileSystem.DeleteFile(filename, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
         }
 
         static void MainForm_KeyDown(object sender, KeyEventArgs e)

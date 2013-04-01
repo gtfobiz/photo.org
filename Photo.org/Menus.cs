@@ -49,8 +49,7 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFilename", "File&name"));
             menu.Name = "View_ThumbnailOrder_Filename";
-            menu.Click += new EventHandler(SetThumbnailOrder);
-            menu.Checked = true;
+            menu.Click += new EventHandler(SetThumbnailOrder);            
             lesserParent.DropDownItems.Add(menu);            
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFolder", "&Folder"));
@@ -85,6 +84,7 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderRandom", "&Random"));
             menu.Name = "View_ThumbnailOrder_Random";
+            menu.Checked = true;
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 

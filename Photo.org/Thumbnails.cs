@@ -557,8 +557,18 @@ namespace Photo.org
 
         private static void RemoveSelectedPhotos()
         {
-            if (MessageBox.Show("Remove " + m_ThumbnailView.SelectedItems.Count.ToString() + " photo(s) from database?", "Remove from database", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
-                return;
+            bool recycle = Common.IsShiftPressed();
+
+            if (recycle)
+            {
+                if (MessageBox.Show("Send " + m_ThumbnailView.SelectedItems.Count.ToString() + " photo(s) to recycle bin?", "Send to recycle bin", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    return;
+            }
+            else
+            {
+                if (MessageBox.Show("Remove " + m_ThumbnailView.SelectedItems.Count.ToString() + " photo(s) from database?", "Remove from database", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    return;
+            }
 
             Status.Busy = true;
 
@@ -566,7 +576,7 @@ namespace Photo.org
 
             foreach (Photo p in m_ThumbnailView.SelectedItems)
             {
-                p.Remove();
+                p.Remove(recycle);
                 m_ThumbnailView.Photos.Remove(p);
             }
 

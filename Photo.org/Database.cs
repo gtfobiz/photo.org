@@ -902,8 +902,8 @@ namespace Photo.org
                 sql += "BEGIN ";
                 sql += "INSERT INTO PHOTO_CATEGORY (PHOTO_ID, CATEGORY_ID, SOURCE) ";
                 sql += "SELECT NEW.PHOTO_ID, ac.CATEGORY_ID, 'A' ";
-                sql += "FROM CATEGORY_PATH cp JOIN AUTO_CATEGORY ac ON ac.SOURCE_ID = cp.CATEGORY_ID ";
-                sql += "WHERE cp.TARGET_ID = NEW.CATEGORY_ID AND NOT EXISTS (";
+                sql += "FROM CATEGORY_PATH cp JOIN AUTO_CATEGORY ac ON ac.SOURCE_ID = cp.TARGET_ID ";
+                sql += "WHERE cp.CATEGORY_ID = NEW.CATEGORY_ID AND NOT EXISTS (";
                 sql += "SELECT 1 FROM PHOTO_CATEGORY WHERE PHOTO_ID = NEW.PHOTO_ID AND CATEGORY_ID = ac.CATEGORY_ID AND SOURCE = 'A'); ";
                 sql += "END;";
 

@@ -152,7 +152,7 @@ namespace Photo.org
             return thumbnail;
         }
 
-        internal void Remove()
+        internal void Remove(bool recycle)
         {
             try
             {
@@ -164,6 +164,7 @@ namespace Photo.org
                 // TODO: merkkaa myöhemmin tuhottavaksi
             }
 
+            Common.SendToRecycleBin(FilenameWithPath);
             Database.DeletePhoto(m_Id);
         }
 

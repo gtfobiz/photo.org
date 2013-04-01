@@ -518,15 +518,26 @@ namespace Photo.org
                     mi.Click += new EventHandler(contextMenuItem_Click);
                     menu.MenuItems.Add(mi);
 
-                    if (m_TreeView.SelectedNodes.Count == 1 && !m_TreeView.SelectedNodes.Contains(targetNode))
+                    if (m_TreeView.SelectedNodes.Count == 1)
                     {
                         menu.MenuItems.Add("-");
 
-                        mi = new MenuItem();
-                        mi.Text = "Add auto category";
-                        mi.Name = "AddAutoCategory";
-                        mi.Click += new EventHandler(contextMenuItem_Click);
-                        menu.MenuItems.Add(mi);
+                        if (m_TreeView.SelectedNodes.Contains(targetNode))
+                        {
+                            mi = new MenuItem();
+                            mi.Text = "Auto categories";
+                            mi.Name = "AutoCategories";
+                            //mi.Click += new EventHandler(contextMenuItem_Click);
+                            menu.MenuItems.Add(mi);
+                        }
+                        else
+                        {                            
+                            mi = new MenuItem();
+                            mi.Text = "Add auto category";
+                            mi.Name = "AddAutoCategory";
+                            mi.Click += new EventHandler(contextMenuItem_Click);
+                            menu.MenuItems.Add(mi);
+                        }
                     }
 
                     menu.MenuItems.Add("-");

@@ -70,7 +70,7 @@ namespace Photo.org
         internal const int ItemControlWidth = 100;
         internal const int ItemControlHeigth = 135;
 
-        internal SortBy SortBy = SortBy.Filename;
+        internal SortBy SortBy = SortBy.Random;
         internal bool SortAscending = true;
         
         internal delegate void PhotoMouseDownHandler(Photo photo, MouseEventArgs e);
@@ -262,7 +262,7 @@ namespace Photo.org
                         sorter.Add(photo.FileSize.ToString().PadLeft(10, '0') + "|" + photo.Id.ToString(), photo);
                         break;
                     case SortBy.ImportDate:
-                        sorter.Add(photo.ImportDate.ToString("yyyyMMddhhmmss") + "|" + photo.Id.ToString(), photo);
+                        sorter.Add(photo.ImportDate.ToString("yyyyMMddHHmmss") + "|" + photo.Id.ToString(), photo);
                         break;
                     case SortBy.Resolution:
                         sorter.Add((photo.Width * photo.Height).ToString("0000000000") + "|" + photo.Id.ToString(), photo);
@@ -421,7 +421,7 @@ namespace Photo.org
                     break;
                 case SortBy.ImportDate:
                     if (prevPhoto == null || photo.ImportDate != prevPhoto.ImportDate)
-                        return new MyListViewGroupBar(photo.ImportDate.ToString("yyyy-MM-dd hh:mm:ss"));
+                        return new MyListViewGroupBar(photo.ImportDate.ToString("yyyy-MM-dd HH:mm:ss"));
                     break;
             }
 
