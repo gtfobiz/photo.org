@@ -164,7 +164,9 @@ namespace Photo.org
                 // TODO: merkkaa myöhemmin tuhottavaksi
             }
 
-            Common.SendToRecycleBin(FilenameWithPath);
+            if (recycle)
+                Common.SendToRecycleBin(FilenameWithPath);
+
             Database.DeletePhoto(m_Id);
         }
 
