@@ -20,6 +20,7 @@ namespace Photo.org
         private static CategoryLabel m_ActiveCategoryLabel = null;
         private static Timer m_SlideShowTimer = new Timer();
         private static Rectangle m_SelectionRectangle = Rectangle.Empty;
+        //private static int m_ZoomFactor = 1;
         //private static bool m_PaintingArea = false;
 
         /// <summary>
@@ -382,6 +383,12 @@ namespace Photo.org
             mi.Name = "RemoveCategory";
             mi.Click += new EventHandler(mi_Click);
             menu.MenuItems.Add(mi);
+
+            //mi = new MenuItem();
+            //mi.Text = Multilingual.GetText("viewerLabelContextMenu", "LocateCategory", "Locate category");
+            //mi.Name = "LocateCategory";
+            //mi.Click += new EventHandler(mi_Click);
+            //menu.MenuItems.Add(mi);
 
             m_ActiveCategoryLabel = categoryLabel;
             menu.Show(categoryLabel, location);            

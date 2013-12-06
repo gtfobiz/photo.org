@@ -7,6 +7,7 @@ namespace Photo.org
 {
     internal enum Component { Photos, Viewer };
     internal enum SortBy { Filename, Folder, Filesize, ImportDate, Width, Height, Resolution, EXIFDate, Random };
+    internal enum CategoryDialogMode { Default, Select, Require, Hide, HideChildren };
 
     internal static class Guids
     {
@@ -16,9 +17,17 @@ namespace Photo.org
     }
 
     internal static class Setting
-    {
+    {        
         //internal static readonly string ImportPath = "importPath";
         internal static readonly string DatabaseFilename = "databaseFilename";
+        internal static readonly string SplitterDistance = "splitterDistance";
+        internal static readonly string MainWindowLeft = "mainWindowLeft";
+        internal static readonly string MainWindowTop = "mainWindowTop";
+        internal static readonly string MainWindowWidth = "mainWindowWidgth";
+        internal static readonly string MainWindowHeight = "mainWindowHeight";
+        internal static readonly string ThumbnailSize = "thumbnailSize";
+        internal static readonly string ThumbnailSortBy = "thumbnailSortBy";
+        internal static readonly string ThumbnailSortByAscending = "thumbnailSortByAscending";
     }
 
     internal static class PhotoCategorySource

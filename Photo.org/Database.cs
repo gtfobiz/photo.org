@@ -923,6 +923,9 @@ namespace Photo.org
             string sql = "";      
             int orphanBranches = 0, orphanThumbFiles = 0, obsoletePaths = 0;
 
+            Status.PushText();
+            Status.SetText("Assigning derived categories...");
+
             DropPhotoCategoryTrigger();
             using (SQLiteCommand comm = new SQLiteCommand())
             {
@@ -934,6 +937,8 @@ namespace Photo.org
             }
             ApplyAutoCategories();
             CreatePhotoCategoryTrigger();
+
+            Status.SetText("Handling orphan category branches...");
 
             // connect orphan branches to root
             using (SQLiteCommand comm = new SQLiteCommand())
@@ -948,6 +953,8 @@ namespace Photo.org
                 AddParameter(comm, "guidEmpty", DbType.Guid).Value = Guid.Empty;
                 orphanBranches = comm.ExecuteNonQuery();
             }
+
+            Status.SetText("Deleting orphan thumbnail files...");
 
             // delete orphan thumbnail files
             DataTable dt = Query("select PHOTO_ID from PHOTO", null);
@@ -967,6 +974,8 @@ namespace Photo.org
                     }
             }
 
+            Status.SetText("Deleting paths without photos...");
+
             // remove paths without photos
             using (SQLiteCommand comm = new SQLiteCommand())
             {
@@ -982,6 +991,8 @@ namespace Photo.org
             //select pc.CATEGORY_ID photo_category pc left join category c on c.CATEGORY_ID = pc.CATEGORY_ID where c.CATEGORY_ID is null
 
             //-statistics
+
+            Status.PopText();
 
             MessageBox.Show(
                 orphanBranches.ToString() + " orphan branches\n" +
@@ -1011,6 +1022,47 @@ namespace Photo.org
 
             foreach (DataRow dr in Query(sql, parameters).Rows)
                 (dr["SOURCE"].ToString() == "U" ? photo.Categories : photo.AutoCategories).Add(new Guid(dr["CATEGORY_ID"].ToString()));
+        }
+
+        internal static void ShowStatistics()
+        {
+            Status.Busy = true;
+
+            long photoCount = (long)GetOne("select count(*) from PHOTO");
+            long unassignedPhotoCount = (long)GetOne("select count(*) from PHOTO where not exists(select 1 from PHOTO_CATEGORY where PHOTO_ID = PHOTO.PHOTO_ID)");
+            long hiddenPhotoCount = 0;
+            long categoryCount = (long)GetOne("select count(*) from CATEGORY");
+            long photoCategoryCount = 0;
+            decimal categoriesPerPhotoAvg = 0;
+            long categoriesPerPhotoMax = 0;
+
+            string sql = "select count(*) from PHOTO_CATEGORY where CATEGORY_ID <> @hidden";
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            parameters.Add("@hidden", Guids.Hidden);
+            photoCategoryCount = (long)Query(sql, parameters).Rows[0][0];
+            if (photoCount - unassignedPhotoCount > 0)
+                categoriesPerPhotoAvg = (decimal)photoCategoryCount / (photoCount - unassignedPhotoCount);
+
+            sql = "select PHOTO_ID, count(*) from PHOTO_CATEGORY where CATEGORY_ID <> @hidden group by PHOTO_ID order by count(*) desc";
+            categoriesPerPhotoMax = (long)Query(sql, parameters).Rows[0][1];
+
+            if (Status.ShowHiddenPhotos)
+            {
+                sql = "select count(*) from PHOTO where exists(select 1 from PHOTO_CATEGORY where PHOTO_ID = PHOTO.PHOTO_ID and CATEGORY_ID = @hidden)";
+                hiddenPhotoCount = (long)Query(sql, parameters).Rows[0][0];
+            }
+
+            string statistics =
+                "number of photos\t\t" + photoCount.ToString()
+                + "\n- unassigned\t\t" + unassignedPhotoCount.ToString()
+                + (Status.ShowHiddenPhotos ? "\n- hidden\t\t\t" + hiddenPhotoCount.ToString() : "")
+                + "\n\nnumber of categories\t" + categoryCount.ToString()
+                + "\n- max per photo\t\t" + categoriesPerPhotoMax.ToString()
+                + "\n- avg per photo\t\t" + categoriesPerPhotoAvg.ToString("0.00");
+                
+
+            Status.Busy = false;
+            MessageBox.Show(statistics, "Statistics");
         }
     }
 }

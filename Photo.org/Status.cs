@@ -11,13 +11,14 @@ namespace Photo.org
         internal static Component ActiveComponent = Component.Photos;
         internal static bool LabelEdit = false;
         internal static bool ReadOnly = false;
-        internal static bool ShowHiddenPhotos = false;
+        internal static bool ShowHiddenPhotos = false;        
 
         private static MainForm m_MainForm = null;
         private static StatusStrip m_StatusStrip = new StatusStrip();
         private static ToolStripProgressBar m_ProgressBar = new ToolStripProgressBar();
-        private static ToolStripTextBox m_StatusText = new ToolStripTextBox();
+        private static ToolStripStatusLabel m_StatusText = new ToolStripStatusLabel();
         private static bool m_InBusyStatus = false;
+        private static Stack<string> m_TextStack = new Stack<string>();
 
         public static bool Busy
         {
@@ -37,7 +38,8 @@ namespace Photo.org
             m_ProgressBar.Visible = false;
             m_StatusStrip.Items.Add(m_ProgressBar);
 
-            m_StatusText.Visible = false;
+            //m_StatusText.Visible = true;
+            //m_StatusText.Text = "testi";
             m_StatusStrip.Items.Add(m_StatusText);
 
             m_MainForm.Controls.Add(m_StatusStrip);
@@ -55,11 +57,13 @@ namespace Photo.org
                 m_StatusText.Text = text;
                 m_StatusText.Visible = true;
             }
+            Application.DoEvents();
         }
 
         internal static void ShowProgress()
         {
             ShowProgress(0, 1, 0);
+            Application.DoEvents();
         }
 
         /// <summary>
@@ -98,6 +102,16 @@ namespace Photo.org
         {
             m_ProgressBar.Visible = false;
             Status.Busy = false;
+        }
+
+        internal static void PushText()
+        {
+            m_TextStack.Push(m_StatusText.Text);
+        }
+
+        internal static void PopText()
+        {
+            m_StatusText.Text = m_TextStack.Pop();
         }
     }
 }

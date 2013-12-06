@@ -15,7 +15,7 @@ namespace Photo.org
         internal delegate void CategoryAssignmentChangedDelegate(Photo photo, Category category, bool added);
         internal static event CategoryAssignmentChangedDelegate CategoryAssignmentChanged;
 
-        internal static Guid LastCategoryId = Guid.Empty;
+        internal static Guid LastCategoryId = Guid.Empty;        
         
         internal static void InsertTestCategories()
         {
@@ -64,6 +64,38 @@ namespace Photo.org
                 return m_Categories[categoryId];
 
             return null;
+        }
+
+        internal static void ShowCategoryDialog(CategoryDialogMode mode)
+        {
+            using (CategoryForm f = new CategoryForm())
+            {
+                f.AllCategories = m_Categories;
+                f.CategoryDialogMode = mode;
+
+                f.ShowDialog();
+
+                if (f.SelectedCategories.Count == 0)
+                    return;
+
+                switch (mode)
+                {
+                    case CategoryDialogMode.Select:
+                        m_TreeView.ClearSelections();
+                        m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                        FetchPhotos();
+                        break;
+                    case CategoryDialogMode.Require:
+                        m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                        FetchPhotos();
+                        break;
+                    case CategoryDialogMode.Hide:
+                        Status.Busy = true;
+                        Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_TreeView.FindNode(f.SelectedCategories[0].ToString())), Guid.Empty);
+                        Status.Busy = false;
+                        break;
+                }                               
+            }
         }
 
         internal static void ShowCategoryDialog(List<Photo> photos)
@@ -290,7 +322,7 @@ namespace Photo.org
 
             m_UnassignedNode = m_TreeView.Nodes.Add(Guids.Unassigned.ToString(), Multilingual.GetText("categories", "unassigned", "Unassigned"));
             //m_RestrictedNode = m_TreeView.Nodes.Add(Guids.Restricted.ToString(), Multilingual.GetText("categories", "restricted", "Restricted")); // ei toimi
-            m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allFiles", "All files"));            
+            m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allItems", "All items"));            
 
             foreach (Category category in m_Categories.Values)
                 if (category.ParentId == Guid.Empty && category.Id != Guids.AllFiles && category.Id != Guids.Unassigned)
@@ -619,7 +651,9 @@ namespace Photo.org
                     //if (tn.Nodes.Count > 0)
                         // update child nodes?
 
+                    Status.Busy = true;
                     UpdateCategoryColor(tn, cd.Color, true);
+                    Status.Busy = false;
                 }
                 else
                 {

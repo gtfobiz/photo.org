@@ -76,7 +76,7 @@ namespace Photo.org
                 //image = LoadImage();
             }
 
-            Image thumbnail = ThumbnailFromImage(image, Thumbnails.c_ThumbnailSize);
+            Image thumbnail = ThumbnailFromImage(image, Thumbnails.ThumbnailSize);
             if (thumbnail == null)
                 return null;
 
@@ -175,7 +175,21 @@ namespace Photo.org
             if (!File.Exists(Database.ThumbnailPath + @"\" + m_Id.ToString()))
                 return null;
 
-            return Image.FromFile(Database.ThumbnailPath + @"\" + m_Id.ToString());                    
+            Image image = Image.FromFile(Database.ThumbnailPath + @"\" + m_Id.ToString());
+
+            if (image.Width != Thumbnails.ThumbnailSize)
+            {
+                try
+                {
+                    image.Dispose();
+                    image = null;
+                    File.Delete(Database.ThumbnailPath + @"\" + m_Id.ToString());
+                    return null;
+                }
+                catch { }
+            }
+
+            return image;
         }
 
         internal bool Exists()

@@ -69,6 +69,35 @@ namespace Photo.org
                 ResetNodeColors(tn);
         }
 
+        internal TreeNode FindNode(string key)
+        {            
+            return FindNode(key, Nodes);
+        }
+
+        internal TreeNode FindNode(string key, TreeNodeCollection nodes)
+        {
+            if (nodes.ContainsKey(key))
+                return nodes[key];
+
+            foreach (TreeNode tn in nodes)
+            {
+                TreeNode node = FindNode(key, tn.Nodes);
+                if (node != null)
+                    return node;
+            }
+
+            return null;
+        }
+
+        internal void SelectNode(TreeNode tn)
+        {
+            if (!m_SelectedNodes.Contains(tn))
+            {
+                m_SelectedNodes.Add(tn);
+                PaintSelectedNode(tn);
+            }
+        }
+
         internal void ClearNodes()
         {
             Nodes.Clear();            
@@ -122,8 +151,9 @@ namespace Photo.org
                     }
                     else
                     {
-                        m_SelectedNodes.Add(tn);
-                        PaintSelectedNode(tn);
+                        SelectNode(tn);
+                        //m_SelectedNodes.Add(tn);
+                        //PaintSelectedNode(tn);
                     }
                 }
                 else

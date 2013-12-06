@@ -42,12 +42,13 @@ namespace Photo.org
             m_PictureBox.Location = new Point(0, 0);
             m_PictureBox.Size = new Size(MyListView.ItemControlWidth, MyListView.ItemControlWidth);
             m_PictureBox.BackColor = SystemColors.Control;
+            m_PictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
             m_PictureBox.MouseDown += new MouseEventHandler(OnMouseDown);
             m_PictureBox.MouseUp += new MouseEventHandler(OnMouseUp);
             m_PictureBox.MouseMove += new MouseEventHandler(OnMouseMove);
             this.Controls.Add(m_PictureBox);
 
-            m_Label.Location = new Point(0, 105);
+            m_Label.Location = new Point(0, MyListView.ItemControlHeigth - 30);
             m_Label.AutoSize = false;
             m_Label.Size = new Size(MyListView.ItemControlWidth, 50);
             m_Label.BackColor = SystemColors.Control;

@@ -11,9 +11,9 @@ namespace Photo.org
 {
     internal static class Thumbnails
     {
-        internal const int c_ThumbnailSize = 100;
+        internal static int ThumbnailSize = 0;
 
-        private static MyListView m_ThumbnailView = new MyListView();
+        private static MyListView m_ThumbnailView = null; 
         private static int m_CurrentlyShownPhotoIndex = 0;
 
         public static int CurrentPhotoOrdinalNumber
@@ -40,6 +40,14 @@ namespace Photo.org
         /// <param name="splitContainer">Splitcontainer to contain the listview control</param>
         internal static void Initialize(Control.ControlCollection controlCollection)
         {
+            ThumbnailSize = Common.StrToInt(Settings.Get(Setting.ThumbnailSize));
+            if (ThumbnailSize == 0)
+            {
+                ThumbnailSize = 100;
+                Settings.Set(Setting.ThumbnailSize, ThumbnailSize.ToString());
+            }
+
+            m_ThumbnailView = new MyListView();
             m_ThumbnailView.PhotoMouseDown += new MyListView.PhotoMouseDownHandler(m_ThumbnailView_PhotoMouseDown);
             m_ThumbnailView.PhotoMouseUp += new MyListView.PhotoMouseUpHandler(m_ThumbnailView_PhotoMouseUp);
             m_ThumbnailView.PhotoMouseMove += new MyListView.PhotoMouseMoveHandler(m_ThumbnailView_MouseMove);
@@ -217,6 +225,8 @@ namespace Photo.org
                         if (!m_ThumbnailView.Photos[i].FilenameWithPath.Contains(f.FilterText))
                             m_ThumbnailView.Photos.Remove(m_ThumbnailView.Photos[i]);
                     m_ThumbnailView.EndUpdate();
+
+                    ShowPhotoCount();
                 }
             }
         }
@@ -251,6 +261,8 @@ namespace Photo.org
             }
 
             m_ThumbnailView.EndUpdate();
+
+            ShowPhotoCount();
         }        
 
         /// <summary>
@@ -427,6 +439,7 @@ namespace Photo.org
             int i = 0;
 
             Status.ShowProgress();
+            Status.SetText("fetching items...");
 
             ClearPhotos();           
 
@@ -464,6 +477,12 @@ namespace Photo.org
             m_ThumbnailView.EndUpdate();
 
             Status.HideProgress();
+            ShowPhotoCount();
+        }
+
+        private static void ShowPhotoCount()
+        {
+            Status.SetText(m_ThumbnailView.Photos.Count + " items");
         }
 
 #region context menus
@@ -588,6 +607,7 @@ namespace Photo.org
 
         internal static void SetSortAscending(bool ascending)
         {
+            Settings.Set(Setting.ThumbnailSortByAscending, (ascending ? "1" : "0"));
             m_ThumbnailView.SortAscending = ascending;
             m_ThumbnailView.Sort();
             m_ThumbnailView.RefreshOrWhatever();
@@ -596,6 +616,7 @@ namespace Photo.org
 
         internal static void SetSortBy(SortBy sortBy)
         {
+            Settings.Set(Setting.ThumbnailSortBy, ((int)sortBy).ToString());
             m_ThumbnailView.SortBy = sortBy;
             m_ThumbnailView.Sort();
             m_ThumbnailView.RefreshOrWhatever();

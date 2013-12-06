@@ -12,7 +12,7 @@ namespace Photo.org
         private static MenuStrip m_MenuStrip = new MenuStrip();
 
         internal static void Initialize(MainForm mainForm)
-        {
+        {            
             mainForm.Controls.Add(m_MenuStrip);
 
             // FILE
@@ -38,6 +38,11 @@ namespace Photo.org
             parent.DropDownItems.Add(menu);
 
             // VIEW
+            int initialSortOrder = Common.StrToInt(Settings.Get(Setting.ThumbnailSortBy));
+            string initialSortOrderAscending = Settings.Get(Setting.ThumbnailSortByAscending);
+            Thumbnails.SetSortBy((SortBy)initialSortOrder);
+            Thumbnails.SetSortAscending(initialSortOrderAscending != "0");
+
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "view", "&View"));
             m_MenuStrip.Items.Add(menu);
             parent = menu;
@@ -49,42 +54,49 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFilename", "File&name"));
             menu.Name = "View_ThumbnailOrder_Filename";
+            menu.Checked = (initialSortOrder == (int)SortBy.Filename);
             menu.Click += new EventHandler(SetThumbnailOrder);            
             lesserParent.DropDownItems.Add(menu);            
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFolder", "&Folder"));
             menu.Name = "View_ThumbnailOrder_Folder";
+            menu.Checked = (initialSortOrder == (int)SortBy.Folder);
             menu.Click += new EventHandler(SetThumbnailOrder);            
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFilesize", "&Filesize"));
             menu.Name = "View_ThumbnailOrder_Filesize";
+            menu.Checked = (initialSortOrder == (int)SortBy.Filesize);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderImportDate", "&Import date"));
             menu.Name = "View_ThumbnailOrder_ImportDate";
+            menu.Checked = (initialSortOrder == (int)SortBy.ImportDate);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderResolution", "&Resolution"));
             menu.Name = "View_ThumbnailOrder_Resolution";
+            menu.Checked = (initialSortOrder == (int)SortBy.Resolution);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderWidth", "&Width"));
             menu.Name = "View_ThumbnailOrder_Width";
+            menu.Checked = (initialSortOrder == (int)SortBy.Width);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderHeight", "&Height"));
             menu.Name = "View_ThumbnailOrder_Height";
+            menu.Checked = (initialSortOrder == (int)SortBy.Height);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderRandom", "&Random"));
             menu.Name = "View_ThumbnailOrder_Random";
-            menu.Checked = true;
+            menu.Checked = (initialSortOrder == (int)SortBy.Random);
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
@@ -92,12 +104,13 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderAscending", "&Ascending"));
             menu.Name = "View_ThumbnailOrder_Ascending";
-            menu.Click += new EventHandler(SetThumbnailOrder);
-            menu.Checked = true;
+            menu.Checked = (initialSortOrderAscending != "0");
+            menu.Click += new EventHandler(SetThumbnailOrder);            
             lesserParent.DropDownItems.Add(menu);
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderDescending", "&Descending"));
             menu.Name = "View_ThumbnailOrder_Descending";
+            menu.Checked = (initialSortOrderAscending == "0");
             menu.Click += new EventHandler(SetThumbnailOrder);
             lesserParent.DropDownItems.Add(menu);
 
@@ -108,6 +121,31 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsMaintenance", "&Maintenance"));
             menu.Name = "Tools_Maintenance";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsStatistics", "&Statistics"));
+            menu.Name = "Tools_Statistics";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            // CATEGORY
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "category", "&Category"));
+            m_MenuStrip.Items.Add(menu);
+            parent = menu;
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "categorySelect", "&Select..."));
+            menu.Name = "Category_Select";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "categoryRequire", "&Require..."));
+            menu.Name = "Category_Require";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "categoryHide", "&Hide..."));
+            menu.Name = "Category_Hide";
             menu.Click += new EventHandler(menu_Click);
             parent.DropDownItems.Add(menu);
         }
@@ -190,6 +228,18 @@ namespace Photo.org
                 case "Tools_Maintenance":
                     if (!Status.ReadOnly)
                         Database.DoMaintenance();
+                    break;
+                case "Tools_Statistics":
+                    Database.ShowStatistics();
+                    break;
+                case "Category_Select":
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Select);
+                    break;
+                case "Category_Require":
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Require);
+                    break;
+                case "Category_Hide":
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Hide);
                     break;
             }
         }

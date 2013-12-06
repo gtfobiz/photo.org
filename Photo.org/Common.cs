@@ -19,10 +19,17 @@ namespace Photo.org
         internal static void Initialize(MainForm mainForm)
         {
             Settings.Load();
-            Multilingual.Load();
 
             m_MainForm = mainForm;
             m_MainForm.KeyPreview = true;
+            m_MainForm.StartPosition = FormStartPosition.Manual;
+            m_MainForm.MinimumSize = new Size(800, 600);
+            mainForm.Left = StrToInt(Settings.Get(Setting.MainWindowLeft));
+            mainForm.Top = StrToInt(Settings.Get(Setting.MainWindowTop));
+            mainForm.Width = StrToInt(Settings.Get(Setting.MainWindowWidth));
+            mainForm.Height = StrToInt(Settings.Get(Setting.MainWindowHeight));
+
+            Multilingual.Load();                       
 
             m_SplitContainer.Dock = DockStyle.Fill;
             m_SplitContainer.GotFocus += new EventHandler(m_SplitContainer_GotFocus);
@@ -30,6 +37,7 @@ namespace Photo.org
 
             m_MainForm.KeyDown += new KeyEventHandler(MainForm_KeyDown);
             m_MainForm.FormClosing += new FormClosingEventHandler(MainForm_FormClosing);
+            m_MainForm.Layout += m_MainForm_Layout;
 
             Status.Initialize(mainForm);
             Categories.Initialize(m_SplitContainer.Panel1.Controls);
@@ -42,6 +50,23 @@ namespace Photo.org
             Categories.Populate();
 
             //Worklist.StartThread();
+        }
+
+        static void m_MainForm_Layout(object sender, LayoutEventArgs e)
+        {            
+            m_SplitContainer.SplitterDistance = StrToInt(Settings.Get(Setting.SplitterDistance));
+        }
+
+        internal static int StrToInt(string value)
+        {
+            try
+            {
+                return int.Parse(value);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         internal static bool IsCtrlPressed()
@@ -66,6 +91,12 @@ namespace Photo.org
 
         static void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            Settings.Set(Setting.MainWindowLeft, m_MainForm.Left.ToString());
+            Settings.Set(Setting.MainWindowTop, m_MainForm.Top.ToString());
+            Settings.Set(Setting.MainWindowWidth, m_MainForm.Width.ToString());
+            Settings.Set(Setting.MainWindowHeight, m_MainForm.Height.ToString());
+            Settings.Set(Setting.SplitterDistance, m_SplitContainer.SplitterDistance.ToString());
+
             Dispose();
         }
 

@@ -18,6 +18,13 @@ namespace Photo.org
         private List<Guid> m_ListedCategories = new List<Guid>();
         private string m_SearchString = "";
         //private bool m_SearchOnlyBeginning = true;
+        private CategoryDialogMode m_CategoryDialogMode = CategoryDialogMode.Default;
+
+        internal CategoryDialogMode CategoryDialogMode
+        {
+            get { return m_CategoryDialogMode; }
+            set { m_CategoryDialogMode = value; }
+        }
 
         internal Dictionary<Guid, Category> AllCategories
         {
@@ -47,11 +54,18 @@ namespace Photo.org
 
             if (m_SearchString == "")
             {
-                this.Text = "Recent categories";
-                for (int i=m_RecentCategories.Count-1; i>=0; i--)
+                if (m_CategoryDialogMode == CategoryDialogMode.Default)
                 {
-                    m_ListedCategories.Add(m_RecentCategories[i].Id);
-                    lstCategories.Items.Add(m_RecentCategories[i].Name);
+                    this.Text = "Recent categories";
+                    for (int i = m_RecentCategories.Count - 1; i >= 0; i--)
+                    {
+                        m_ListedCategories.Add(m_RecentCategories[i].Id);
+                        lstCategories.Items.Add(m_RecentCategories[i].Name);
+                    }
+                }
+                else
+                {
+                    this.Text = "...";
                 }
             }
             else
@@ -104,7 +118,7 @@ namespace Photo.org
             try
             {
                 int last = lstCategories.SelectedIndex;
-                int first = (Common.IsShiftPressed() ? 0 : last);
+                int first = (m_CategoryDialogMode == org.CategoryDialogMode.Default && Common.IsShiftPressed() ? 0 : last);
 
                 for (int i=first; i<=last; i++)
                     SelectedCategories.Add(m_ListedCategories[i]);

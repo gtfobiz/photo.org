@@ -67,8 +67,8 @@ namespace Photo.org
             }
         }
 
-        internal const int ItemControlWidth = 100;
-        internal const int ItemControlHeigth = 135;
+        internal static int ItemControlWidth;
+        internal static int ItemControlHeigth;
 
         internal SortBy SortBy = SortBy.Random;
         internal bool SortAscending = true;
@@ -99,6 +99,9 @@ namespace Photo.org
 
         private void InitializeComponent()
         {
+            ItemControlWidth = Thumbnails.ThumbnailSize;
+            ItemControlHeigth = ItemControlWidth + 35;
+
             this.BorderStyle = BorderStyle.Fixed3D;
             this.BackColor = Color.White;
             //this.SetStyle(ControlStyles.Selectable, true);
