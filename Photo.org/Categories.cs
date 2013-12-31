@@ -68,6 +68,9 @@ namespace Photo.org
 
         internal static void ShowCategoryDialog(CategoryDialogMode mode)
         {
+            // jos kuva auki ja tehdään hide, ylä- ja alapalkki jää näkyviin
+            // jos ollaan renameamassa categorya, n ja p menee thumbnailseille
+
             using (CategoryForm f = new CategoryForm())
             {
                 f.AllCategories = m_Categories;
@@ -78,23 +81,48 @@ namespace Photo.org
                 if (f.SelectedCategories.Count == 0)
                     return;
 
-                switch (mode)
+                if (m_UseNewTree)
                 {
-                    case CategoryDialogMode.Select:
-                        m_TreeView.ClearSelections();
-                        m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
-                        FetchPhotos();
-                        break;
-                    case CategoryDialogMode.Require:
-                        m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
-                        FetchPhotos();
-                        break;
-                    case CategoryDialogMode.Hide:
-                        Status.Busy = true;
-                        Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_TreeView.FindNode(f.SelectedCategories[0].ToString())), Guid.Empty);
-                        Status.Busy = false;
-                        break;
-                }                               
+                    switch (mode)
+                    {
+                        case CategoryDialogMode.Select:
+                            m_MyTreeView.ClearSelections();
+                            m_MyTreeView.SelectNode(m_MyTreeView.FindNode(f.SelectedCategories[0]));
+                            FetchPhotos();
+                            break;
+                        case CategoryDialogMode.Require:
+                            m_MyTreeView.SelectNode(m_MyTreeView.FindNode(f.SelectedCategories[0]));
+                            FetchPhotos();
+                            break;
+                        case CategoryDialogMode.Hide:
+                            Status.Busy = true;
+                            Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MyTreeView.FindNode(f.SelectedCategories[0])), Guid.Empty);
+                            Status.Busy = false;
+                            break;
+                    }
+
+                    m_MyTreeView.RefreshOrWhatever();
+                }
+                else
+                {
+                    switch (mode)
+                    {
+                        case CategoryDialogMode.Select:
+                            m_TreeView.ClearSelections();
+                            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                            FetchPhotos();
+                            break;
+                        case CategoryDialogMode.Require:
+                            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                            FetchPhotos();
+                            break;
+                        case CategoryDialogMode.Hide:
+                            Status.Busy = true;
+                            Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_TreeView.FindNode(f.SelectedCategories[0].ToString())), Guid.Empty);
+                            Status.Busy = false;
+                            break;
+                    }
+                }          
             }
         }
 
@@ -159,12 +187,19 @@ namespace Photo.org
 
 #region private members
 
+        private static bool m_UseNewTree = false;
+        private static MyTreeView m_MyTreeView = null;
+        private static MyTreeViewNode m_MyAllFilesNode = null;
+        private static MyTreeViewNode m_MyUnassignedNode = null;
+
         private static CustomTreeView m_TreeView = null;
         private static Dictionary<Guid, Category> m_Categories = new Dictionary<Guid, Category>();
         private static TreeNode m_AllFilesNode = null;
         private static TreeNode m_UnassignedNode = null;
         private static TreeNode m_MenuTargetNode = null;
+        private static MyTreeViewNode m_MyMenuTargetNode = null;
         private static List<TreeNode> m_NodesToHideFromResults = new List<TreeNode>();
+        private static List<MyTreeViewNode> m_MyNodesToHideFromResults = new List<MyTreeViewNode>();
         private static List<Category> m_RecentCategories = new List<Category>();
 
 #endregion     
@@ -173,76 +208,160 @@ namespace Photo.org
 
         private static void FetchPhotos()
         {
-            foreach (TreeNode tn in m_NodesToHideFromResults)
-                tn.BackColor = Color.White;
-            m_NodesToHideFromResults.Clear();
+            if (m_UseNewTree)
+            { 
+                foreach (MyTreeViewNode tn in m_MyNodesToHideFromResults)
+                    if (tn.BackColor != Color.LightGreen)
+                        tn.BackColor = Color.White;
+                m_MyNodesToHideFromResults.Clear();
+                m_MyTreeView.RefreshOrWhatever();
+            }
+//VANHAPUU
+            else
+            {
+                foreach (TreeNode tn in m_NodesToHideFromResults)
+                    tn.BackColor = Color.White;
+                m_NodesToHideFromResults.Clear();
+            }
 
             List<Guid> required = new List<Guid>();
 
-            foreach (TreeNode tn in m_TreeView.SelectedNodes)
-                if (new Guid(tn.Name) != Guids.AllFiles)
-                    required.Add(new Guid(tn.Name));
+            if (m_UseNewTree)
+            {
+                foreach (MyTreeViewNode tn in m_MyTreeView.SelectedNodes)
+                    if ((Guid)tn.Key != Guids.AllFiles)
+                        required.Add((Guid)tn.Key);
+            }
+//VANHAPUU
+            else
+            {
+                foreach (TreeNode tn in m_TreeView.SelectedNodes)
+                    if (new Guid(tn.Name) != Guids.AllFiles)
+                        required.Add(new Guid(tn.Name));
+            }
 
             Thumbnails.FetchPhotos(required);
         }
 
         private static Guid AddCategory(string name, Guid parent)
         {
-            TreeNode parentNode = null;
-            object parentColor = DBNull.Value;
-
-            if (parent == Guid.Empty || parent == Guids.AllFiles)
+            if (m_UseNewTree)
             {
-                parent = Guid.Empty;
-                parentNode = m_AllFilesNode;
+                MyTreeViewNode parentNode = null;
+                object parentColor = DBNull.Value;
+
+                if (parent == Guid.Empty || parent == Guids.AllFiles)
+                {
+                    parent = Guid.Empty;
+                    parentNode = m_MyAllFilesNode;
+                }
+                else
+                {
+                    parentNode = m_MyTreeView.FindNode(parent);
+                    parentColor = (long)parentNode.Category.Color.ToArgb();                    
+                }
+
+                Guid id = Guid.NewGuid();
+                Category category = new Category(id, parent, name, parentColor);
+                m_Categories.Add(id, category);
+
+                Database.BeginTransaction();
+
+                Database.InsertCategory(id, parent, name);
+                Database.InsertCategoryPath(id, id);
+
+                parentNode.Nodes.Add(id, name).Category = category;
+
+                while (parentNode.Parent.Category != null)
+                {
+                    Database.InsertCategoryPath(parentNode.Category.Id, id);
+                    parentNode = parentNode.Parent;
+                }
+
+                Database.Commit();
+
+                return id;
             }
             else
-            {
-                TreeNode[] tna = m_TreeView.Nodes.Find(parent.ToString(), true);
-                if (tna.Length == 0)
-                    return Guid.Empty;
-                parentNode = tna[0];
-                parentColor = (long)(parentNode.Tag as Category).Color.ToArgb();
+            { 
+                TreeNode parentNode = null;
+                object parentColor = DBNull.Value;
+
+                if (parent == Guid.Empty || parent == Guids.AllFiles)
+                {
+                    parent = Guid.Empty;
+                    parentNode = m_AllFilesNode;
+                }
+                else
+                {
+                    TreeNode[] tna = m_TreeView.Nodes.Find(parent.ToString(), true);
+                    if (tna.Length == 0)
+                        return Guid.Empty;
+                    parentNode = tna[0];
+                    parentColor = (long)(parentNode.Tag as Category).Color.ToArgb();
+                }
+
+                Guid id = Guid.NewGuid();
+                Category category = new Category(id, parent, name, parentColor);
+                m_Categories.Add(id, category);
+
+                Database.BeginTransaction();
+
+                Database.InsertCategory(id, parent, name);
+                Database.InsertCategoryPath(id, id);
+
+                parentNode.Nodes.Add(id.ToString(), name).Tag = category;
+
+                while (parentNode.Parent != null)
+                {
+                    Database.InsertCategoryPath(new Guid(parentNode.Name), id);
+                    parentNode = parentNode.Parent;
+                }
+
+                Database.Commit();
+
+                return id;
             }
-
-            Guid id = Guid.NewGuid();
-            Category category = new Category(id, parent, name, 0, parentColor);
-            m_Categories.Add(id, category);
-
-            Database.BeginTransaction();
-
-            Database.InsertCategory(id, parent, name);
-            Database.InsertCategoryPath(id, id);
-
-            parentNode.Nodes.Add(id.ToString(), name).Tag = category;
-
-            while (parentNode.Parent != null)
-            {
-                Database.InsertCategoryPath(new Guid(parentNode.Name), id);
-                parentNode = parentNode.Parent;
-            }
-
-            Database.Commit();
-
-            return id;
         }
 
         private static void AddToTreeView(Category category)
         {
-            TreeNode newNode = null;
-
-            if (category.ParentId == Guid.Empty)
+            if (m_UseNewTree)
             {
-                newNode = m_AllFilesNode.Nodes.Add(category.Id.ToString(), category.Label);
+                MyTreeViewNode myNewNode = null;
+
+                if (category.ParentId == Guid.Empty)
+                {
+                    myNewNode = m_MyAllFilesNode.Nodes.Add(category.Id, category.Label);
+                }
+                else
+                {
+                    MyTreeViewNode parent = m_MyTreeView.FindNode(category.ParentId);
+                    if (parent == null)
+                        return;
+
+                    myNewNode = parent.Nodes.Add(category.Id, category.Label);
+                }
+                myNewNode.Category = category;
             }
+//VANHAPUU
             else
             {
-                TreeNode[] tna = m_TreeView.Nodes.Find(category.ParentId.ToString(), true);
-                if (tna.Length == 0)
-                    return;
-                newNode = tna[0].Nodes.Add(category.Id.ToString(), category.Label);
-            }
-            newNode.Tag = category;
+                TreeNode newNode = null;
+
+                if (category.ParentId == Guid.Empty)
+                {
+                    newNode = m_AllFilesNode.Nodes.Add(category.Id.ToString(), category.Label);
+                }
+                else
+                {
+                    TreeNode[] tna = m_TreeView.Nodes.Find(category.ParentId.ToString(), true);
+                    if (tna.Length == 0)
+                        return;
+                    newNode = tna[0].Nodes.Add(category.Id.ToString(), category.Label);                 
+                }
+                newNode.Tag = category;
+            }            
 
             foreach (Category c in m_Categories.Values)
                 if (c.ParentId == category.Id)
@@ -269,7 +388,24 @@ namespace Photo.org
                 OnHideNodeFromResultsRecurse(ref categories, tn);
         }
 
+        private static void OnHideNodeFromResultsRecurse(ref List<Category> categories, MyTreeViewNode treeNode)
+        {
+            m_MyNodesToHideFromResults.Add(treeNode);
+            treeNode.BackColor = Color.LightPink;
+
+            categories.Add(treeNode.Category);
+            foreach (MyTreeViewNode tn in treeNode.Nodes)
+                OnHideNodeFromResultsRecurse(ref categories, tn);
+        }
+
         private static List<Category> OnHideNodeFromResults(TreeNode treeNode)
+        {
+            List<Category> categories = new List<Category>();
+            OnHideNodeFromResultsRecurse(ref categories, treeNode);
+            return categories;
+        }
+
+        private static List<Category> OnHideNodeFromResults(MyTreeViewNode treeNode)
         {
             List<Category> categories = new List<Category>();
             OnHideNodeFromResultsRecurse(ref categories, treeNode);
@@ -300,10 +436,38 @@ namespace Photo.org
             m_TreeView.DragDrop += new DragEventHandler(m_TreeView_DragDrop);
             m_TreeView.AfterLabelEdit += new NodeLabelEditEventHandler(m_TreeView_AfterLabelEdit);
             m_TreeView.BeforeCollapse += new TreeViewCancelEventHandler(m_TreeView_BeforeCollapse);
-            m_TreeView.MouseWheelOutsideControl += new CustomTreeView.MouseWheelOutsideControlDelegate(m_TreeView_MouseWheelOutsideControl);
+            m_TreeView.MouseWheelOutsideControl += new CustomTreeView.MouseWheelOutsideControlDelegate(m_TreeView_MouseWheelOutsideControl);            
 
-            controlCollection.Add(m_TreeView);
+            m_MyTreeView = new MyTreeView();
+            m_MyTreeView.Dock = DockStyle.Fill;
+
+            m_MyTreeView.NodeSelectionChanged += m_MyTreeView_NodeSelectionChanged;
+            m_MyTreeView.MouseWheelOutsideControl += m_MyTreeView_MouseWheelOutsideControl;
+            m_MyTreeView.NodeMouseDown += m_MyTreeView_NodeMouseDown;
+            m_MyTreeView.NodeTextChanged += m_MyTreeView_NodeTextChanged;
+
+            if (m_UseNewTree)
+                controlCollection.Add(m_MyTreeView);
+            else
+                controlCollection.Add(m_TreeView);
         }
+
+        static void m_MyTreeView_NodeTextChanged(MyTreeViewNode node)
+        {
+            Status.Busy = true;
+
+            Category category = node.Category;
+            category.Name = node.Text;
+            Database.UpdateCategory(category.Id, category.ParentId, category.Name);
+            
+            Status.Busy = false;
+            Status.LabelEdit = false;
+        }
+
+        static void m_MyTreeView_MouseWheelOutsideControl(object sender, short direction)
+        {
+            Common.MouseWheelOutsideTreeView(direction > 0);
+        }        
 
         static void m_TreeView_MouseWheelOutsideControl(object sender, short direction)
         {
@@ -317,18 +481,23 @@ namespace Photo.org
 
             foreach (DataRow dr in Database.QueryCategories().Rows)
             {
-                m_Categories.Add((Guid)dr["CATEGORY_ID"], new Category((Guid)dr["CATEGORY_ID"], (Guid)dr["PARENT_ID"], dr["NAME"].ToString(), (long)dr["PHOTO_COUNT"], dr["COLOR"]));
+                m_Categories.Add((Guid)dr["CATEGORY_ID"], new Category((Guid)dr["CATEGORY_ID"], (Guid)dr["PARENT_ID"], dr["NAME"].ToString(), dr["COLOR"]));
             }
 
             m_UnassignedNode = m_TreeView.Nodes.Add(Guids.Unassigned.ToString(), Multilingual.GetText("categories", "unassigned", "Unassigned"));
-            //m_RestrictedNode = m_TreeView.Nodes.Add(Guids.Restricted.ToString(), Multilingual.GetText("categories", "restricted", "Restricted")); // ei toimi
-            m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allItems", "All items"));            
+            m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allItems", "All items"));
+
+            m_MyUnassignedNode = m_MyTreeView.Nodes.Add(Guids.Unassigned, Multilingual.GetText("categories", "unassigned", "Unassigned"));
+            m_MyAllFilesNode = m_MyTreeView.Nodes.Add(Guids.AllFiles, Multilingual.GetText("categories", "allItems", "All items"));
 
             foreach (Category category in m_Categories.Values)
                 if (category.ParentId == Guid.Empty && category.Id != Guids.AllFiles && category.Id != Guids.Unassigned)
                     AddToTreeView(category);
 
             m_AllFilesNode.Expand();
+            m_MyAllFilesNode.Expand();
+            
+            m_MyTreeView.RefreshOrWhatever();
         }
 
 #endregion
@@ -347,6 +516,16 @@ namespace Photo.org
             }
         }
 
+        static void m_MyTreeView_NodeMouseDown(MyTreeViewNode node, MouseEventArgs e)
+        {
+            if (Status.Busy)
+                return;
+
+            if (e.Button == MouseButtons.Right)
+                ShowContextMenu(e.Location, node);
+        }
+
+//VANHAPUU
         static void m_TreeView_MouseDown(object sender, MouseEventArgs e)
         {
             if (Status.Busy)
@@ -428,6 +607,14 @@ namespace Photo.org
                 e.Cancel = true;
         }
 
+        static void m_MyTreeView_NodeSelectionChanged()
+        {
+            if (Status.Busy)
+                Thumbnails.ClearPhotos();
+            else
+                FetchPhotos();
+        }
+
         static void m_TreeView_NodeSelectionChanged(object sender, EventArgs e)
         {
             if (Status.Busy)
@@ -484,6 +671,109 @@ namespace Photo.org
 
 #region context menus
 
+        private static void ShowContextMenu(Point location, MyTreeViewNode targetNode)
+        {
+            if (targetNode == null)
+                return;
+
+            ContextMenu menu = new ContextMenu();
+            MenuItem mi = null;
+
+            bool properTargetNode = (targetNode != null && targetNode != m_MyAllFilesNode && targetNode != m_MyUnassignedNode);
+
+            bool needSeparator = false;
+
+            if (m_MyTreeView.SelectedNodes.Count != 0 && properTargetNode && !m_MyTreeView.SelectedNodes.Contains(targetNode))
+            {
+                mi = new MenuItem();
+                mi.Text = "Hide from results";
+                mi.Name = "HideFromResults";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+
+                needSeparator = true;
+            }
+
+            if (targetNode.Nodes.Count != 0)
+            {
+                mi = new MenuItem();
+                mi.Text = "Hide children from results";
+                mi.Name = "HideChildrenFromResults";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+
+                needSeparator = true;
+            }
+
+            if (!Status.ReadOnly)
+            {
+                if (needSeparator)
+                    menu.MenuItems.Add("-");
+
+                mi = new MenuItem();
+                mi.Text = "New category";
+                mi.Name = "NewCategory";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+
+                if (properTargetNode)
+                {
+                    mi = new MenuItem();
+                    mi.Text = "New category as child";
+                    mi.Name = "NewChildCategory";
+                    mi.Click += new EventHandler(contextMenuItem_Click);
+                    menu.MenuItems.Add(mi);
+
+                    menu.MenuItems.Add("-");
+
+                    mi = new MenuItem();
+                    mi.Text = "Rename category";
+                    mi.Name = "RenameCategory";
+                    mi.Click += new EventHandler(contextMenuItem_Click);
+                    menu.MenuItems.Add(mi);
+
+                    mi = new MenuItem();
+                    mi.Text = "Delete category";
+                    mi.Name = "DeleteCategory";
+                    mi.Click += new EventHandler(contextMenuItem_Click);
+                    menu.MenuItems.Add(mi);
+
+                    if (m_TreeView.SelectedNodes.Count == 1)
+                    {
+                        menu.MenuItems.Add("-");
+
+                        if (m_MyTreeView.SelectedNodes.Contains(targetNode))
+                        {
+                            mi = new MenuItem();
+                            mi.Text = "Auto categories";
+                            mi.Name = "AutoCategories";
+                            //mi.Click += new EventHandler(contextMenuItem_Click);
+                            menu.MenuItems.Add(mi);
+                        }
+                        else
+                        {
+                            mi = new MenuItem();
+                            mi.Text = "Add auto category";
+                            mi.Name = "AddAutoCategory";
+                            mi.Click += new EventHandler(contextMenuItem_Click);
+                            menu.MenuItems.Add(mi);
+                        }
+                    }
+
+                    menu.MenuItems.Add("-");
+
+                    mi = new MenuItem();
+                    mi.Text = "Set category color";
+                    mi.Name = "SetCategoryColor";
+                    mi.Click += new EventHandler(contextMenuItem_Click);
+                    menu.MenuItems.Add(mi);
+                }
+            }
+
+            m_MyMenuTargetNode = targetNode;
+            menu.Show(m_MyTreeView, location);
+        }
+
         private static void ShowContextMenu(Point location, TreeNode targetNode)
         {
             if (targetNode == null)
@@ -493,6 +783,7 @@ namespace Photo.org
             MenuItem mi = null;
 
             bool properTargetNode = (targetNode != null && targetNode != m_AllFilesNode && targetNode != m_UnassignedNode);
+
             bool needSeparator = false;
 
             if (m_TreeView.SelectedNodes.Count != 0 && properTargetNode && !m_TreeView.SelectedNodes.Contains(targetNode))
@@ -586,6 +877,12 @@ namespace Photo.org
             menu.Show(m_TreeView, location);
         }
 
+        private static void EditCategoryLabel(MyTreeViewNode treeNode)
+        {
+            m_MyTreeView.EditLabel(treeNode);
+            Status.LabelEdit = true;
+        }
+
         private static void EditCategoryLabel(TreeNode treeNode)
         {
             treeNode.Text = (treeNode.Tag as Category).Name;
@@ -598,49 +895,119 @@ namespace Photo.org
         {
             Guid newNodeGuid = Guid.Empty;
 
-            switch ((sender as MenuItem).Name)
-            { 
-                case "HideFromResults":
-                    Status.Busy = true;
-                    Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MenuTargetNode), Guid.Empty);
-                    Status.Busy = false;
-                    break;
-                case "HideChildrenFromResults":
-                    Status.Busy = true;
-                    Color color = m_MenuTargetNode.BackColor;
-                    List<Category> categories = OnHideNodeFromResults(m_MenuTargetNode);
-                    categories.Remove((Category)m_MenuTargetNode.Tag);
-                    m_MenuTargetNode.BackColor = color;
-                    Thumbnails.HideCategoriesFromResults(categories, (m_TreeView.SelectedNodes.Contains(m_MenuTargetNode) ? (m_MenuTargetNode.Tag as Category).Id : Guid.Empty));
-                    Status.Busy = false;
-                    break;
-                case "NewCategory":
-                    if (m_MenuTargetNode == null || m_MenuTargetNode.Parent == null)
-                        newNodeGuid = AddCategory("New Category", Guid.Empty);
-                    else
-                        newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Parent.Name));                        
-                    break;
-                case "NewChildCategory":
-                    newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Name));                    
-                    m_MenuTargetNode.Expand();
-                    break;
-                case "RenameCategory":
-                    EditCategoryLabel(m_MenuTargetNode);
-                    break;
-                case "DeleteCategory":
-                    DeleteCategoryByNodeExt(m_MenuTargetNode);
-                    Thumbnails.ClearPhotos();
-                    break;
-                case "AddAutoCategory":
-                    AddAutoCategory(m_MenuTargetNode.Tag as Category);
-                    break;
-                case "SetCategoryColor":
-                    SetCategoryColor(m_MenuTargetNode);                    
-                    break;
-            }
+            if (m_UseNewTree)
+            {
+                switch ((sender as MenuItem).Name)
+                {
+                    case "HideFromResults":
+                        Status.Busy = true;
+                        Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MyMenuTargetNode), Guid.Empty);
+                        m_MyTreeView.RefreshOrWhatever();
+                        Status.Busy = false;
+                        break;
+                    case "HideChildrenFromResults":
+                        Status.Busy = true;
+                        Color color = m_MyMenuTargetNode.BackColor;
+                        List<Category> categories = OnHideNodeFromResults(m_MyMenuTargetNode);
+                        categories.Remove(m_MyMenuTargetNode.Category);
+                        m_MyMenuTargetNode.BackColor = color;
+                        Thumbnails.HideCategoriesFromResults(categories, (m_MyTreeView.SelectedNodes.Contains(m_MyMenuTargetNode) ? (m_MyMenuTargetNode.Category).Id : Guid.Empty));
+                        m_MyTreeView.RefreshOrWhatever();
+                        Status.Busy = false;
+                        break;
+                    case "NewCategory":
+                        if (m_MyMenuTargetNode == null || m_MyMenuTargetNode.Parent == null)
+                            newNodeGuid = AddCategory("New Category", Guid.Empty);
+                        else
+                            newNodeGuid = AddCategory("New Category", m_MyMenuTargetNode.Parent.Category.Id);
+                        break;
+                    case "NewChildCategory":
+                        newNodeGuid = AddCategory("New Category", m_MyMenuTargetNode.Category.Id);
+                        m_MyMenuTargetNode.Expand();
+                        break;
+                    case "RenameCategory":
+                        EditCategoryLabel(m_MyMenuTargetNode);
+                        break;
+                    case "DeleteCategory":
+                        DeleteCategoryByNodeExt(m_MyMenuTargetNode);
+                        Thumbnails.ClearPhotos();
+                        break;
+                    case "AddAutoCategory":
+                        throw new NotImplementedException();
+                    //    AddAutoCategory(m_MenuTargetNode.Tag as Category);
+                    //    break;
+                    case "SetCategoryColor":                        
+                        SetCategoryColor(m_MyMenuTargetNode);
+                        break;
+                }
 
-            if (newNodeGuid != Guid.Empty)
-                EditCategoryLabel(m_TreeView.Nodes.Find(newNodeGuid.ToString(), true)[0]);
+                if (newNodeGuid != Guid.Empty)
+                    EditCategoryLabel(m_MyTreeView.FindNode(newNodeGuid));
+            }
+            else
+            { 
+                switch ((sender as MenuItem).Name)
+                { 
+                    case "HideFromResults":
+                        Status.Busy = true;
+                        Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MenuTargetNode), Guid.Empty);
+                        Status.Busy = false;
+                        break;
+                    case "HideChildrenFromResults":
+                        Status.Busy = true;
+                        Color color = m_MenuTargetNode.BackColor;
+                        List<Category> categories = OnHideNodeFromResults(m_MenuTargetNode);
+                        categories.Remove((Category)m_MenuTargetNode.Tag);
+                        m_MenuTargetNode.BackColor = color;
+                        Thumbnails.HideCategoriesFromResults(categories, (m_TreeView.SelectedNodes.Contains(m_MenuTargetNode) ? (m_MenuTargetNode.Tag as Category).Id : Guid.Empty));
+                        Status.Busy = false;
+                        break;
+                    case "NewCategory":
+                        if (m_MenuTargetNode == null || m_MenuTargetNode.Parent == null)
+                            newNodeGuid = AddCategory("New Category", Guid.Empty);
+                        else
+                            newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Parent.Name));                        
+                        break;
+                    case "NewChildCategory":
+                        newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Name));                    
+                        m_MenuTargetNode.Expand();
+                        break;
+                    case "RenameCategory":
+                        EditCategoryLabel(m_MenuTargetNode);
+                        break;
+                    case "DeleteCategory":
+                        DeleteCategoryByNodeExt(m_MenuTargetNode);
+                        Thumbnails.ClearPhotos();
+                        break;
+                    case "AddAutoCategory":
+                        AddAutoCategory(m_MenuTargetNode.Tag as Category);
+                        break;
+                    case "SetCategoryColor":
+                        SetCategoryColor(m_MenuTargetNode);                    
+                        break;
+                }
+
+                if (newNodeGuid != Guid.Empty)
+                    EditCategoryLabel(m_TreeView.Nodes.Find(newNodeGuid.ToString(), true)[0]);
+            }
+        }
+
+        private static void SetCategoryColor(MyTreeViewNode tn)
+        {
+            using (ColorDialog cd = new ColorDialog())
+                if (cd.ShowDialog() == DialogResult.OK)
+                {
+                    //if (tn.Nodes.Count > 0)
+                    // update child nodes?
+
+                    Status.Busy = true;
+                    UpdateCategoryColor(tn, cd.Color, true);
+                    Status.Busy = false;
+                }
+                else
+                {
+                    // clear color?
+                }
         }
 
         private static void SetCategoryColor(TreeNode tn)
@@ -659,6 +1026,16 @@ namespace Photo.org
                 {
                     // clear color?
                 }
+        }
+
+        private static void UpdateCategoryColor(MyTreeViewNode tn, Color color, bool updateChildren)
+        {
+            tn.Category.Color = color;
+            Database.UpdateCategory(tn.Category);
+
+            if (updateChildren)
+                foreach (MyTreeViewNode node in tn.Nodes)
+                    UpdateCategoryColor(node, color, true);
         }
 
         private static void UpdateCategoryColor(TreeNode tn, Color color, bool updateChildren)
@@ -695,6 +1072,34 @@ namespace Photo.org
             m_Categories.Remove(category.Id);
         }
 
+        private static void DeleteCategoryByNode(MyTreeViewNode treeNode)
+        {
+            foreach (MyTreeViewNode tn in treeNode.Nodes)
+                DeleteCategoryByNode(tn);
+
+            Category category = treeNode.Category;
+            Database.DeleteCategory(category.Id);
+            m_Categories.Remove(category.Id);
+        }
+
+        //TODO: tyhmä nimi
+        private static void DeleteCategoryByNodeExt(MyTreeViewNode treeNode)
+        {
+            if (MessageBox.Show("Delete category " + treeNode.Text + "?", "Delete category", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
+            Status.ShowProgress();
+            Database.BeginTransaction();
+
+            DeleteCategoryByNode(treeNode);
+            m_MyTreeView.RemoveNode(treeNode);
+
+            Database.Commit();
+            Status.HideProgress();
+
+            m_MyTreeView.RefreshOrWhatever();
+        }
+
         //TODO: tyhmä nimi
         private static void DeleteCategoryByNodeExt(TreeNode treeNode)
         {
@@ -721,20 +1126,13 @@ namespace Photo.org
 
     class Category
     {
-        public Guid Id = Guid.Empty;
-        public Guid ParentId = Guid.Empty;
-        public string Name = "";
-        public long PhotoCount = 0;
-        public Color Color = Color.Black;
-        //private int m_PhotoCount = 0;
+        internal Guid Id = Guid.Empty;
+        internal Guid ParentId = Guid.Empty;
+        internal string Name = "";
+//        internal long PhotoCount = 0;
+        internal Color Color = Color.Black;
 
-        //public int PhotoCount
-        //{
-        //    get { return m_PhotoCount; }
-        //    set { m_PhotoCount = value; }
-        //}
-
-        public string Label
+        internal string Label
         {
             get { return Name; }
             //get { return Name + " (" + PhotoCount.ToString() + ")"; }
@@ -744,12 +1142,11 @@ namespace Photo.org
         {
         }
 
-        public Category(Guid id, Guid parentId, string name, long photoCount, object color)
+        public Category(Guid id, Guid parentId, string name, object color)
         {
             Id = id;
             ParentId = parentId;
             Name = name;
-            PhotoCount = photoCount;            
             long colorValue = (color == DBNull.Value ? 0 : (long)color);            
             Color = Color.FromArgb((int)colorValue);
         }

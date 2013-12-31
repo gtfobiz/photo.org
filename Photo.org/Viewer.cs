@@ -227,15 +227,6 @@ namespace Photo.org
                 m_PictureBox.SizeMode = PictureBoxSizeMode.Zoom;
         }
 
-        private static string GetFileSizeString(long fileSize)
-        {
-            if (fileSize < 1024)
-                return fileSize.ToString() + "B";
-            if (fileSize < 1024 * 1024)
-                return ((decimal)fileSize / 1024).ToString("0") + "KB";
-            return ((decimal)fileSize / 1024 / 1024).ToString("0.0") + "MB";
-        }
-
         internal static void HandleZoomLevel()
         {
             //decimal zoomRatio = 2;
@@ -289,7 +280,7 @@ namespace Photo.org
                 m_FilenameLabel.Text = m_Photo.Filename + "  (" 
                     + size.Width.ToString() + " x " 
                     + size.Height.ToString() + ", " 
-                    + GetFileSizeString(m_Photo.FileSize) + ")  [" 
+                    + Common.GetFileSizeString(m_Photo.FileSize) + ")  [" 
                     + (Thumbnails.CurrentPhotoOrdinalNumber).ToString() + " / " 
                     + Thumbnails.NumberOfPhotos.ToString() + "]";
 

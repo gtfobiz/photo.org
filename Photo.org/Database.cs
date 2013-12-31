@@ -621,7 +621,7 @@ namespace Photo.org
             //sql += "group by c.NAME ";
             //sql += "order by c.NAME";
 
-            string sql = "select CATEGORY_ID, PARENT_ID, NAME, COLOR, 0 as PHOTO_COUNT from CATEGORY order by NAME";
+            string sql = "select CATEGORY_ID, PARENT_ID, NAME, COLOR from CATEGORY order by NAME";
             return Query(sql, null);
         }
 
@@ -991,6 +991,15 @@ namespace Photo.org
             //select pc.CATEGORY_ID photo_category pc left join category c on c.CATEGORY_ID = pc.CATEGORY_ID where c.CATEGORY_ID is null
 
             //-statistics
+
+            Status.SetText("Compacting database...");
+
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                comm.Connection = m_Connection;
+                comm.CommandText = "vacuum";
+                comm.ExecuteNonQuery();
+            }
 
             Status.PopText();
 

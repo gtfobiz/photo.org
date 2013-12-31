@@ -14,7 +14,8 @@ namespace Photo.org
     internal static class Common
     {
         private static MainForm m_MainForm = null;
-        private static SplitContainer m_SplitContainer = new SplitContainer();        
+        private static SplitContainer m_SplitContainer = new SplitContainer();
+        private static bool m_LayoutVisited = false;
 
         internal static void Initialize(MainForm mainForm)
         {
@@ -24,6 +25,7 @@ namespace Photo.org
             m_MainForm.KeyPreview = true;
             m_MainForm.StartPosition = FormStartPosition.Manual;
             m_MainForm.MinimumSize = new Size(800, 600);
+            //mainForm.WindowState = (FormWindowState)StrToInt(Setting.MainWindowState);
             mainForm.Left = StrToInt(Settings.Get(Setting.MainWindowLeft));
             mainForm.Top = StrToInt(Settings.Get(Setting.MainWindowTop));
             mainForm.Width = StrToInt(Settings.Get(Setting.MainWindowWidth));
@@ -49,12 +51,18 @@ namespace Photo.org
             Database.OpenDefaultDatabase();
             Categories.Populate();
 
+            //new testbed().Show();
+
             //Worklist.StartThread();
         }
 
         static void m_MainForm_Layout(object sender, LayoutEventArgs e)
-        {            
+        {
+            if (m_LayoutVisited)
+                return;
+
             m_SplitContainer.SplitterDistance = StrToInt(Settings.Get(Setting.SplitterDistance));
+            m_LayoutVisited = true;
         }
 
         internal static int StrToInt(string value)
@@ -95,7 +103,8 @@ namespace Photo.org
             Settings.Set(Setting.MainWindowTop, m_MainForm.Top.ToString());
             Settings.Set(Setting.MainWindowWidth, m_MainForm.Width.ToString());
             Settings.Set(Setting.MainWindowHeight, m_MainForm.Height.ToString());
-            Settings.Set(Setting.SplitterDistance, m_SplitContainer.SplitterDistance.ToString());
+            //Settings.Set(Setting.MainWindowState, ((int)m_MainForm.WindowState).ToString());
+            Settings.Set(Setting.SplitterDistance, m_SplitContainer.SplitterDistance.ToString());            
 
             Dispose();
         }
@@ -114,6 +123,15 @@ namespace Photo.org
         static public void SendToRecycleBin(string filename)
         {
             FileSystem.DeleteFile(filename, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+        }
+
+        internal static string GetFileSizeString(long fileSize)
+        {
+            if (fileSize < 1024)
+                return fileSize.ToString() + "B";
+            if (fileSize < 1024 * 1024)
+                return ((decimal)fileSize / 1024).ToString("0") + "KB";
+            return ((decimal)fileSize / 1024 / 1024).ToString("0.0") + "MB";
         }
 
         static void MainForm_KeyDown(object sender, KeyEventArgs e)

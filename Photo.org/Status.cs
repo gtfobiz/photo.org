@@ -11,7 +11,8 @@ namespace Photo.org
         internal static Component ActiveComponent = Component.Photos;
         internal static bool LabelEdit = false;
         internal static bool ReadOnly = false;
-        internal static bool ShowHiddenPhotos = false;        
+        internal static bool ShowHiddenPhotos = false;
+        internal static bool ShowHiddenCategories = false; 
 
         private static MainForm m_MainForm = null;
         private static StatusStrip m_StatusStrip = new StatusStrip();
@@ -37,9 +38,6 @@ namespace Photo.org
 
             m_ProgressBar.Visible = false;
             m_StatusStrip.Items.Add(m_ProgressBar);
-
-            //m_StatusText.Visible = true;
-            //m_StatusText.Text = "testi";
             m_StatusStrip.Items.Add(m_StatusText);
 
             m_MainForm.Controls.Add(m_StatusStrip);

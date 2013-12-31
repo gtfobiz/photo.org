@@ -25,6 +25,7 @@ namespace Photo.org
         internal static readonly string MainWindowTop = "mainWindowTop";
         internal static readonly string MainWindowWidth = "mainWindowWidgth";
         internal static readonly string MainWindowHeight = "mainWindowHeight";
+        internal static readonly string MainWindowState = "mainWindowState";
         internal static readonly string ThumbnailSize = "thumbnailSize";
         internal static readonly string ThumbnailSortBy = "thumbnailSortBy";
         internal static readonly string ThumbnailSortByAscending = "thumbnailSortByAscending";

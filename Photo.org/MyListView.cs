@@ -398,18 +398,20 @@ namespace Photo.org
 
         void ctl_OnMouseEvent(string eventType, MyListViewItemControl sender, MouseEventArgs e)
         {
+            MouseEventArgs mea = new MouseEventArgs(e.Button, e.Clicks, e.X + sender.Left, e.Y + sender.Top, e.Delta);
+
             switch (eventType)
             {
                 case "move":
                     if (PhotoMouseMove != null)
-                        PhotoMouseMove(sender.Photo, e);
+                        PhotoMouseMove(sender.Photo, mea);
                     break;
                 case "up":
                     if (PhotoMouseUp != null)
-                        PhotoMouseUp(sender.Photo, e);
+                        PhotoMouseUp(sender.Photo, mea);
                     break;
                 case "down":
-                    ctl_OnMouseDown(sender, e);                    
+                    ctl_OnMouseDown(sender, mea);                    
                     break;
             }
         }
@@ -526,7 +528,7 @@ namespace Photo.org
                 m_SelectedItems.Clear();
                 m_SelectedItems.Add(sender.Photo);
                 RefreshOrWhatever();
-            }
+            }            
 
             if (PhotoMouseDown != null)
                 PhotoMouseDown(sender.Photo, e);

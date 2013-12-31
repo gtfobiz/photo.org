@@ -9,36 +9,18 @@ namespace Photo.org
 {
     internal class MyListViewItemControl : UserControl
     {
-        //internal delegate void MouseDownHandler(MyListViewItemControl sender, MouseEventArgs e);
-        //internal new event MouseDownHandler OnMouseDown;
-        //internal delegate void MouseUpHandler(MyListViewItemControl sender, MouseEventArgs e);
-        //internal new event MouseUpHandler OnMouseUp;
         internal delegate void MouseEventsHandler(string eventType, MyListViewItemControl sender, MouseEventArgs e);
-        internal new event MouseEventsHandler OnMouseEvent;
+        internal event MouseEventsHandler OnMouseEvent;
 
-        private Photo m_Photo = null;
-
-        internal Photo Photo
-        {
-            get
-            {
-                return m_Photo;
-            }
-            set
-            {
-                m_Photo = value;
-
-                this.Text = m_Photo.Filename;
-            }
-        }
-
+        private Photo m_Photo = null;        
         private bool m_Selected = false;
         private string m_Text = "";
         private Label m_Label = new Label();
         private PictureBox m_PictureBox = new PictureBox();
+        private ToolTip m_ToolTip = new ToolTip();
 
         internal MyListViewItemControl()
-        {
+        {            
             m_PictureBox.Location = new Point(0, 0);
             m_PictureBox.Size = new Size(MyListView.ItemControlWidth, MyListView.ItemControlWidth);
             m_PictureBox.BackColor = SystemColors.Control;
@@ -58,10 +40,45 @@ namespace Photo.org
             m_Label.MouseMove += new MouseEventHandler(OnMouseMove);
             this.Controls.Add(m_Label);
 
+            m_ToolTip.InitialDelay = 200;
+
             this.Size = new Size(MyListView.ItemControlWidth, MyListView.ItemControlHeigth);
             this.MouseDown += new MouseEventHandler(OnMouseDown);
             this.MouseUp += new MouseEventHandler(OnMouseUp);
             this.MouseMove += new MouseEventHandler(OnMouseMove);
+        }
+
+        internal Photo Photo
+        {
+            get
+            {
+                return m_Photo;
+            }
+            set
+            {
+                m_Photo = value;
+
+                this.Text = m_Photo.Filename;
+
+                string toolTipText = "";
+
+                foreach (Guid guid in m_Photo.Categories)
+                    if (guid != Guids.Hidden)
+                    {
+                        toolTipText += (toolTipText == "" ? "" : ", ") + Categories.GetCategoryByGuid(guid).Name;
+                    }
+
+                toolTipText = m_Photo.Filename + "  (" + Common.GetFileSizeString(m_Photo.FileSize) + ")\n\n" + toolTipText;
+
+                this.SetTooltipText(toolTipText);
+            }
+        }
+
+        private void SetTooltipText(string text)
+        {            
+            m_ToolTip.SetToolTip(this, text);
+            foreach (Control control in this.Controls)
+                m_ToolTip.SetToolTip(control, text);
         }
 
         void OnMouseMove(object sender, MouseEventArgs e)
@@ -84,48 +101,6 @@ namespace Photo.org
             if (OnMouseEvent != null)
                 OnMouseEvent(eventType, this, e);
         }
-
-        //void m_Label_MouseDown(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseDown(e);
-        //}
-
-        //void m_PictureBox_MouseDown(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseDown(e);
-        //}
-
-        //void MyListViewItemControl_MouseDown(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseDown(e);
-        //}
-
-        //private void HandleMouseDown(MouseEventArgs e)
-        //{
-        //    if (OnMouseDown != null)
-        //        OnMouseDown(this, e);
-        //}
-
-        //void m_Label_MouseUp(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseUp(e);
-        //}
-
-        //void m_PictureBox_MouseUp(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseUp(e);
-        //}
-
-        //void MyListViewItemControl_MouseUp(object sender, MouseEventArgs e)
-        //{
-        //    HandleMouseUp(e);
-        //}
-
-        //private void HandleMouseUp(MouseEventArgs e)
-        //{
-        //    if (OnMouseUp != null)
-        //        OnMouseUp(this, e);
-        //}
 
         internal Image Image
         {

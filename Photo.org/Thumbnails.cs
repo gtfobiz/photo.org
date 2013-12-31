@@ -98,7 +98,8 @@ namespace Photo.org
             }
             else if (e.Button == MouseButtons.Right && e.Clicks == 1)
             {
-                ShowContextMenu(new Point(10, 10), photo);
+                //ShowContextMenu(new Point(10, 10), photo);
+                ShowContextMenu(e.Location, photo);
             }
         }             
 
@@ -118,6 +119,9 @@ namespace Photo.org
         /// <returns></returns>
         internal static bool KeyPreview(KeyEventArgs e)
         {
+            if (Status.LabelEdit)
+                return false;
+
             if (m_ThumbnailView.KeyPreview(e))
                 return true;
 
@@ -167,6 +171,7 @@ namespace Photo.org
                     RemoveSelectedPhotos();
                     break;
             }
+
             return false;
         }
 
@@ -464,10 +469,15 @@ namespace Photo.org
 
                 foreach (DataRow categoryRow in ds.Tables["Categories"].Select("PHOTO_ID = '" + photo.Id.ToString() + "'"))
                 {
+                    Guid guid = new Guid(categoryRow["CATEGORY_ID"].ToString());
+
                     if (categoryRow["SOURCE"].ToString() == "U")
-                        photo.Categories.Add(new Guid(categoryRow["CATEGORY_ID"].ToString()));
+                        photo.Categories.Add(guid);
                     else
-                        photo.AutoCategories.Add(new Guid(categoryRow["CATEGORY_ID"].ToString()));
+                        photo.AutoCategories.Add(guid);
+
+                    //if (guid != Guids.Hidden)
+                    //    Categories.GetCategoryByGuid(guid).PhotoCount++;
                 }
 
                 AddPhoto(photo);
