@@ -20,11 +20,13 @@ namespace Photo.org
             //set { Database.m_ThumbnailPath = value; }
         }
 
+        private static bool m_IsValidPassword = false;
+
 #endregion
 
 #region private members
 
-        private const int c_DatabaseVersion = 11;
+        private const int c_DatabaseVersion = 12;
 
         private static SQLiteConnection m_Connection = null;
         private static SQLiteTransaction m_Transaction = null;
@@ -119,6 +121,7 @@ namespace Photo.org
                 UpdateVersion();
                 Settings.ImportPath = GetParameterText("IMPORT_PATH");
                 Settings.CategoryFormSearchFromBegin = (GetParameterText("CATEGORY_SEARCH_BEGIN") == "1");
+                CheckPassword();
             }
 
             using (SQLiteCommand comm = new SQLiteCommand())
@@ -612,16 +615,29 @@ namespace Photo.org
             return ds;
         }
 
-        internal static DataTable QueryCategories()
-        {            
-            //string sql = "select c.CATEGORY_ID, c.PARENT_ID, c.NAME, count(distinct pc.PHOTO_ID) as PHOTO_COUNT ";
-            //sql += "from CATEGORY c ";
-            //sql += "left join CATEGORY_PATH cp on cp.TARGET_ID = c.CATEGORY_ID ";
-            //sql += "left join PHOTO_CATEGORY pc on pc.CATEGORY_ID = cp.CATEGORY_ID ";
-            //sql += "group by c.NAME ";
-            //sql += "order by c.NAME";
+        //TODO: importin aikana ja jälkeen näkyy alhaal kuvien aikaisempi määrä
 
-            string sql = "select CATEGORY_ID, PARENT_ID, NAME, COLOR from CATEGORY order by NAME";
+        private static void CheckPassword()
+        {
+            //m_IsValidPassword = false;
+
+            //if (!Status.ShowHiddenCategories)
+            //    return;
+
+            //string result = Common.InputBox("testi");
+            //if (result != null)
+            //    MessageBox.Show(result);
+
+            m_IsValidPassword = true;
+        }
+
+        internal static DataTable QueryCategories()
+        {
+            string sql = "select CATEGORY_ID, PARENT_ID, NAME, COLOR from CATEGORY ";
+            if (!Status.ShowHiddenCategories || !m_IsValidPassword)
+                sql += "where HIDDEN is null or HIDDEN = 0 ";
+            sql += "order by NAME";
+
             return Query(sql, null);
         }
 
@@ -649,7 +665,7 @@ namespace Photo.org
                 {
                     comm.Connection = m_Connection;
 
-                    comm.CommandText = "create table CATEGORY (CATEGORY_ID guid not null primary key, PARENT_ID guid null, NAME nvarchar(50), SORT_ORDER integer null, COLOR integer null);";
+                    comm.CommandText = "create table CATEGORY (CATEGORY_ID guid not null primary key, PARENT_ID guid null, NAME nvarchar(50), SORT_ORDER integer null, COLOR integer null, HIDDEN integer null);";
                     comm.ExecuteNonQuery();
                     comm.CommandText = "create unique index idx_CATEGORY on CATEGORY (CATEGORY_ID);";
                     comm.ExecuteNonQuery();

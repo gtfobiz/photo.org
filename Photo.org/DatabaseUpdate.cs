@@ -177,6 +177,18 @@ namespace Photo.org
                 }
                 UpdateVersionInfo(11);
             }
+
+            if (version < 12)
+            {
+                using (SQLiteCommand comm = new SQLiteCommand())
+                {
+                    comm.Connection = m_Connection;
+
+                    comm.CommandText = "alter table CATEGORY add HIDDEN integer null;";
+                    comm.ExecuteNonQuery();
+                }
+                UpdateVersionInfo(12);
+            }
         }
 
         private static void UpdateVersionInfo(int version)

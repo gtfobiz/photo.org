@@ -29,6 +29,7 @@ namespace Photo.org
         internal static readonly string ThumbnailSize = "thumbnailSize";
         internal static readonly string ThumbnailSortBy = "thumbnailSortBy";
         internal static readonly string ThumbnailSortByAscending = "thumbnailSortByAscending";
+        internal static readonly string SlideShowTimerInterval = "slideShowTimerInterval";
     }
 
     internal static class PhotoCategorySource

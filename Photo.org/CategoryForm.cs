@@ -132,6 +132,8 @@ namespace Photo.org
 
         private void CategoryForm_KeyPress(object sender, KeyPressEventArgs e)
         {
+            //TODO: search from end
+
             if (e.KeyChar == '*')
             {
                 Settings.CategoryFormSearchFromBegin = !Settings.CategoryFormSearchFromBegin;

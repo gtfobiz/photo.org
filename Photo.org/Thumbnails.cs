@@ -404,27 +404,7 @@ namespace Photo.org
         {
             try
             {
-                //ListViewItem item = new ListViewItem();
-                //item.Name = photo.Id.ToString();
-                //item.Text = photo.Filename;
-                //item.ImageKey = photo.Id.ToString();
-                //item.SubItems.Add(photo.FileSize.ToString());
-                //item.SubItems.Add(photo.Id.ToString());
-                //item.Tag = photo;
-
-                //string categories = "";
-                //foreach (Guid category in photo.Categories)
-                //    categories += (categories == "" ? "" : ", ") + Categories.GetCategoryByGuid(category).Name;
-                //item.SubItems.Add(categories);
-                
-                //m_ListView.Items.Add(item);
-
                 m_ThumbnailView.Photos.Add(photo);
-
-                //MyListViewItem myItem = new MyListViewItem();
-                //myItem.Photo = photo;
-                //m_ThumbnailView.Items.Add(myItem);
-                //System.Diagnostics.Trace.WriteLine(photo.Filename);
             }
             catch
             { 
@@ -518,7 +498,18 @@ namespace Photo.org
                 menu.MenuItems.Add(mi);
 
                 addSeparator = true;
-            }            
+            }
+
+            if (m_ThumbnailView.SelectedItems.Count > 0)
+            {
+                mi = new MenuItem();
+                mi.Text = Multilingual.GetText("thumbnailsContextMenu", "copySelectedPhotos", "Copy selected photos");
+                mi.Name = "CopySelectedPhotos";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+
+                addSeparator = true;
+            }
 
             //if (m_ListView.SelectedItems.Count > 0)
             //{
@@ -563,6 +554,45 @@ namespace Photo.org
                 case "FilterMissingFiles":
                     FilterMissingFiles();
                     break;
+                case "CopySelectedPhotos":
+                    CopySelectedPhotos();   
+                    break;
+            }
+        }
+
+        private static void CopySelectedPhotos()
+        {            
+            using (FolderBrowserDialog f = new FolderBrowserDialog())
+            {                
+                f.ShowNewFolderButton = true;
+                f.Description = "Select destination folder for the copies of the selected photos.";
+
+                if (f.ShowDialog() != DialogResult.OK)
+                    return;
+
+                Status.Busy = true;
+
+                string path = f.SelectedPath;
+                if (!path.EndsWith(@"\"))
+                    path += @"\";                
+
+                foreach (Photo photo in m_ThumbnailView.SelectedItems)
+                {
+                    FileInfo fi = new FileInfo(photo.FilenameWithPath);
+                    string filename = photo.Filename;
+                    int postfix = 1;
+
+                    while (File.Exists(path + filename))
+                    {
+                        filename = photo.Filename.Substring(0, photo.Filename.Length - fi.Extension.Length) + "(" + postfix++.ToString() + ")" + fi.Extension;
+                    }
+
+                    File.Copy(photo.FilenameWithPath, path + filename);
+                }
+            
+                Status.Busy = false;
+
+                System.Diagnostics.Process.Start(f.SelectedPath);
             }
         }
 

@@ -738,7 +738,7 @@ namespace Photo.org
                     mi.Click += new EventHandler(contextMenuItem_Click);
                     menu.MenuItems.Add(mi);
 
-                    if (m_TreeView.SelectedNodes.Count == 1)
+                    if (m_MyTreeView.SelectedNodes.Count == 1)
                     {
                         menu.MenuItems.Add("-");
 
@@ -767,6 +767,17 @@ namespace Photo.org
                     mi.Name = "SetCategoryColor";
                     mi.Click += new EventHandler(contextMenuItem_Click);
                     menu.MenuItems.Add(mi);
+
+                    if (Status.ShowHiddenCategories)
+                    {
+                        menu.MenuItems.Add("-");
+
+                        mi = new MenuItem();
+                        mi.Text = "test";
+                        mi.Name = "test";
+                        mi.Click += new EventHandler(contextMenuItem_Click);
+                        menu.MenuItems.Add(mi);
+                    }
                 }
             }
 

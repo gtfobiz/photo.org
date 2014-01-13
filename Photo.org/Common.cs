@@ -225,6 +225,18 @@ namespace Photo.org
 
 #endregion        
 
+        internal static string InputBox(string prompt)
+        {
+            using (InputBoxForm f = new InputBoxForm())
+            {
+                f.ShowDialog();
+                if (f.DialogResult == DialogResult.Cancel)
+                    return null;
+
+                return "";
+            }            
+        }
+
         internal static void Dispose()
         {
             try
@@ -265,6 +277,9 @@ namespace Photo.org
 
             if (args.Contains("-h") || args.Contains("-H"))
                 Status.ShowHiddenPhotos = true;
+
+            if (args.Contains("-x") || args.Contains("-X"))
+                Status.ShowHiddenCategories = true;
         }
     }
 }

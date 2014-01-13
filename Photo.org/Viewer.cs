@@ -20,7 +20,11 @@ namespace Photo.org
         private static CategoryLabel m_ActiveCategoryLabel = null;
         private static Timer m_SlideShowTimer = new Timer();
         private static Rectangle m_SelectionRectangle = Rectangle.Empty;
-        //private static int m_ZoomFactor = 1;
+        private static decimal m_ZoomFactor = 1;
+        private static Point m_ZoomCenter = Point.Empty;
+        private static decimal m_AspectRatio = 0;
+        private static Point m_PanningOrigin = Point.Empty;
+        private static bool m_IsImageDisposable = false;
         //private static bool m_PaintingArea = false;
 
         /// <summary>
@@ -74,6 +78,7 @@ namespace Photo.org
 
         static void Owner_Resize(object sender, EventArgs e)
         {
+            HandleZoomLevel();
             SetSizeMode();
         }
 
@@ -87,6 +92,9 @@ namespace Photo.org
 
         internal static bool KeyPreview(KeyEventArgs e)
         {
+            if (Status.LabelEdit)
+                return false;
+
             List<Photo> photoList = new List<Photo>();
 
             switch (e.KeyCode)
@@ -112,8 +120,6 @@ namespace Photo.org
                 case Keys.Space:
                     if (Status.ReadOnly)
                         return false;
-                    //if (Status.LabelEdit)
-                    //    return false;
 
                     List<Photo> photos = new List<Photo>();
                     photos.Add(m_Photo);
@@ -139,6 +145,12 @@ namespace Photo.org
                 case Keys.Subtract:
                     photoList.Add(m_Photo);
                     Categories.SetPhotoCategory(photoList, Categories.LastCategoryId, true);
+                    return true;
+                case Keys.Insert:
+                    Zoom(true);
+                    return true;
+                case Keys.Delete:
+                    Zoom(false);
                     return true;
             }
             return false;
@@ -173,8 +185,15 @@ namespace Photo.org
 
         private static void StartSlideShow()
         {
+            int interval = Common.StrToInt(Settings.Get(Setting.SlideShowTimerInterval));
+            if (interval == 0)
+            {
+                interval = 2000;
+                Settings.Set(Setting.SlideShowTimerInterval, interval.ToString());
+            }
+
             ShowNextPhoto(true);
-            m_SlideShowTimer.Interval = 3000;
+            m_SlideShowTimer.Interval = interval;
             m_SlideShowTimer.Start();
         }
 
@@ -229,25 +248,46 @@ namespace Photo.org
 
         internal static void HandleZoomLevel()
         {
-            //decimal zoomRatio = 2;
+            if (m_ZoomFactor == 1M)
+            {
+                m_PictureBox.Image = m_Image;
+                m_IsImageDisposable = false;
+            }
+            else
+            {
+                Point canvas = new Point(m_PictureBox.Parent.ClientRectangle.Width, m_PictureBox.Parent.ClientRectangle.Height);
+                canvas.Y -= m_CategoriesPanel.Height + m_FilenameLabel.Height;
 
-            //int width = m_Image.Width, height = m_Image.Height;
-            //width = Convert.ToInt32((decimal)width * zoomRatio);
-            //height = Convert.ToInt32((decimal)height * zoomRatio);
+                if (canvas.X / canvas.Y > m_AspectRatio)
+                    canvas.X = (int)(canvas.Y * m_AspectRatio);
+                else
+                    canvas.Y = (int)(canvas.X / m_AspectRatio);
 
-            //Bitmap zoomedImage = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-            ////try
-            //{
-            //    using (Graphics g2 = Graphics.FromImage(zoomedImage))
-            //    {
-            //        g2.Clear(Color.White);
-            //        g2.InterpolationMode = InterpolationMode.NearestNeighbor;
+                Bitmap zoomedImage = new Bitmap(canvas.X, canvas.Y, PixelFormat.Format24bppRgb);
+                //try
+                {
+                    using (Graphics g2 = Graphics.FromImage(zoomedImage))
+                    {
+                        g2.Clear(Color.Cyan);
+                        g2.InterpolationMode = InterpolationMode.NearestNeighbor;
 
-            //        g2.DrawImage(m_Image, new Rectangle(0, 0, width, height), new Rectangle(0, 0, m_Image.Width, m_Image.Height), GraphicsUnit.Pixel);
+                        g2.DrawImage(m_Image, 
+                            new Rectangle(0, 0, canvas.X, canvas.Y), 
+                            new Rectangle(
+                                m_ZoomCenter.X - (int)((decimal)m_Image.Width / m_ZoomFactor / 2), 
+                                m_ZoomCenter.Y - (int)((decimal)m_Image.Height / m_ZoomFactor / 2), 
+                                (int)((decimal)m_Image.Width / m_ZoomFactor), 
+                                (int)((decimal)m_Image.Height / m_ZoomFactor)), 
+                            GraphicsUnit.Pixel);
 
-            //        m_PictureBox.Image = zoomedImage;
-            //    }
-            //}
+                        if (m_IsImageDisposable && m_PictureBox.Image != null)
+                            m_PictureBox.Image.Dispose();
+
+                        m_PictureBox.Image = zoomedImage;
+                        m_IsImageDisposable = true;
+                    }
+                 }
+            }
 
             SetSizeMode();
         }
@@ -269,11 +309,16 @@ namespace Photo.org
 
                 m_Image = Image.FromFile(m_Photo.FilenameWithPath);
 
+                m_AspectRatio = (decimal)m_Image.Width / (decimal)m_Image.Height;
+                m_ZoomFactor = 1M;
+                m_ZoomCenter = new Point(m_Image.Width / 2, m_Image.Height / 2);
+                m_PanningOrigin = Point.Empty;
+
                 Status.ActiveComponent = Component.Viewer;                
 
                 RefreshCategoryLabels();
 
-                m_PictureBox.Image = m_Image;
+                //m_PictureBox.Image = m_Image;
                 HandleZoomLevel();                
 
                 SizeF size = m_PictureBox.Image.PhysicalDimension;
@@ -408,6 +453,9 @@ namespace Photo.org
         {
             if (e.Button == MouseButtons.Left)         
                 m_ReadyToDrag = true;
+
+            if (e.Button == MouseButtons.Right)
+                m_PanningOrigin = e.Location;
         }
 
         static void m_PictureBox_MouseLeave(object sender, EventArgs e)
@@ -417,6 +465,17 @@ namespace Photo.org
 
         static void m_PictureBox_MouseMove(object sender, MouseEventArgs e)
         {
+            if (e.Button != MouseButtons.Right)
+                m_PanningOrigin = Point.Empty;
+
+            if (m_PanningOrigin != Point.Empty)
+            {
+                m_ZoomCenter.X -= (int)((e.X - m_PanningOrigin.X) / m_ZoomFactor);
+                m_ZoomCenter.Y -= (int)((e.Y - m_PanningOrigin.Y) / m_ZoomFactor);
+                m_PanningOrigin = e.Location;
+                HandleZoomLevel();
+            }
+
             //if (Core.IsCtrlPressed())
             //{
             //    if (m_SelectionRectangle == Rectangle.Empty)
@@ -457,7 +516,34 @@ namespace Photo.org
     
         internal static void MouseWheelOutsideTreeView(bool mouseWheelForward)
         {
-            ShowNextPhoto(!mouseWheelForward);
+            if (m_PanningOrigin == Point.Empty)
+            {
+                ShowNextPhoto(!mouseWheelForward);
+            }
+            else
+            {
+                Zoom(mouseWheelForward);
+            }
+        }
+
+        private static void Zoom(bool zoomIn)
+        {
+            if (zoomIn)
+            {
+                m_ZoomFactor *= 1.5M;
+            }
+            else
+            {
+                if (m_ZoomFactor == 1M)
+                    return;
+
+                m_ZoomFactor /= 1.5M;
+
+                if (m_ZoomFactor == 1M)
+                    m_ZoomCenter = new Point(m_Image.Width / 2, m_Image.Height / 2);
+            }
+
+            HandleZoomLevel();
         }
     }
 
