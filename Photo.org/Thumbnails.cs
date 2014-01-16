@@ -148,9 +148,9 @@ namespace Photo.org
                     ShowRenameFileDialog();
                     return true;
                 case Keys.F3:
-                    PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\1sohvakuva-170405.jpg");
-                    PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\2sohvakuva-170405.jpg");
-                    PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\3sohvakuva-170405.jpg");
+                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\1sohvakuva-170405.jpg");
+                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\2sohvakuva-170405.jpg");
+                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\3sohvakuva-170405.jpg");
                 //    Core.ShowAllExif(@"C:\Users\Jarno\Desktop\selvitys\kuva-170405.jpg");
                     return true;
                 case Keys.F:
@@ -486,6 +486,13 @@ namespace Photo.org
             if (m_ThumbnailView.SelectedItems.Count == 1)
             {
                 mi = new MenuItem();
+                mi.Text = Multilingual.GetText("thumbnailsContextMenu", "openFile", "Open");
+                mi.DefaultItem = true;
+                mi.Name = "OpenFile";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+
+                mi = new MenuItem();
                 mi.Text = Multilingual.GetText("thumbnailsContextMenu", "renameFile", "Rename file");
                 mi.Name = "RenameFile";
                 mi.Click += new EventHandler(contextMenuItem_Click);
@@ -494,17 +501,6 @@ namespace Photo.org
                 mi = new MenuItem();
                 mi.Text = Multilingual.GetText("thumbnailsContextMenu", "openContainingFolder", "Open containing folder");
                 mi.Name = "OpenContainingFolder";
-                mi.Click += new EventHandler(contextMenuItem_Click);
-                menu.MenuItems.Add(mi);
-
-                addSeparator = true;
-            }
-
-            if (m_ThumbnailView.SelectedItems.Count > 0)
-            {
-                mi = new MenuItem();
-                mi.Text = Multilingual.GetText("thumbnailsContextMenu", "copySelectedPhotos", "Copy selected photos");
-                mi.Name = "CopySelectedPhotos";
                 mi.Click += new EventHandler(contextMenuItem_Click);
                 menu.MenuItems.Add(mi);
 
@@ -529,6 +525,15 @@ namespace Photo.org
             if (addSeparator)                
                 menu.MenuItems.Add("-");
 
+            if (m_ThumbnailView.SelectedItems.Count > 0)
+            {
+                mi = new MenuItem();
+                mi.Text = Multilingual.GetText("thumbnailsContextMenu", "copySelectedPhotos", "Copy selected photos");
+                mi.Name = "CopySelectedPhotos";
+                mi.Click += new EventHandler(contextMenuItem_Click);
+                menu.MenuItems.Add(mi);
+            }
+
             mi = new MenuItem();
             mi.Text = Multilingual.GetText("thumbnailsContextMenu", "filterMissingFiles", "Filter missing files");
             mi.Name = "FilterMissingFiles";
@@ -545,6 +550,9 @@ namespace Photo.org
             //    case "RemoveFromDatabase":
             //        RemoveSelectedPhotos();
             //        break;
+                case "OpenFile":
+                    OpenFile();
+                    break;
                 case "RenameFile":
                     ShowRenameFileDialog();
                     break;
@@ -558,6 +566,14 @@ namespace Photo.org
                     CopySelectedPhotos();   
                     break;
             }
+        }
+
+        private static void OpenFile()
+        {
+            if (m_ThumbnailView.SelectedItems.Count != 1)
+                return;
+
+            System.Diagnostics.Process.Start(m_ThumbnailView.SelectedItems[0].FilenameWithPath);
         }
 
         private static void CopySelectedPhotos()

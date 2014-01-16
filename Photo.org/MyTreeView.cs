@@ -19,12 +19,16 @@ namespace Photo.org
         internal event NodeMouseDownDelegate NodeMouseDown;
         internal delegate void MouseWheelOutsideControlDelegate(object sender, short direction);
         internal event MouseWheelOutsideControlDelegate MouseWheelOutsideControl;
+        internal delegate void NodeDragEnterDelegate(MyTreeViewNode sender, DragEventArgs e);
+        internal event NodeDragEnterDelegate NodeDragEnter;
+        internal delegate void NodeDragDropDelegate(MyTreeViewNode sender, DragEventArgs e);
+        internal event NodeDragDropDelegate NodeDragDrop;
 
         private List<Label> m_NodeControls = new List<Label>();
         private const int c_TopMargin = 2;
         private const int c_LeftMargin = 4;
         private const int c_NodeHeight = 22;
-        private const int c_NodeIndent = 18;
+        private const int c_NodeIndent = 16;
         private MyTreeViewNode m_Root = null;
         private Dictionary<object, MyTreeViewNode> m_AllNodes = new Dictionary<object, MyTreeViewNode>();
         private List<MyTreeViewNode> m_Nodes = new List<MyTreeViewNode>();
@@ -73,6 +77,21 @@ namespace Photo.org
             this.Controls.Add(m_NodeRenameBox);
         }
 
+        void MyTreeView_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = DragDropEffects.All;
+        }
+
+        void MyTreeView_DragOver(object sender, DragEventArgs e)
+        {
+            //throw new NotImplementedException();
+        }
+
+        void MyTreeView_DragDrop(object sender, DragEventArgs e)
+        {
+            //throw new NotImplementedException();
+        }
+
         void m_ScrollBar_ValueChanged(object sender, EventArgs e)
         {
             RefreshOrWhatever();
@@ -102,21 +121,25 @@ namespace Photo.org
             using (Graphics g = e.Graphics)
             {
                 Assembly myAssembly = System.Reflection.Assembly.GetExecutingAssembly();
-                Stream myStream = myAssembly.GetManifestResourceStream("Photo.org.plus.jpg");
+                Stream myStream = myAssembly.GetManifestResourceStream("Photo.org.plus.png");
                 Bitmap plus = new Bitmap(myStream);
-                myStream = myAssembly.GetManifestResourceStream("Photo.org.minus.jpg");
+                myStream = myAssembly.GetManifestResourceStream("Photo.org.minus.png");
                 Bitmap minus = new Bitmap(myStream);
                 Bitmap bitmap = null;
                 int xOffset = 0, yOffset = 0;
 
-                xOffset = c_NodeIndent / 2 + (minus.Width / 2);
-                yOffset = c_NodeHeight / 2 - (minus.Height / 2);
+                xOffset = c_NodeIndent / 2 + (minus.Width / 2) - 2;
+                yOffset = c_NodeHeight / 2 - (minus.Height / 2) - 1;
 
                 foreach (Label l in m_NodeControls)
-                    if (l.Visible && (l.Tag as MyTreeViewNode).Nodes.Count > 0)
+                    if (l.Visible) // && (l.Tag as MyTreeViewNode).Nodes.Count > 0 && (l.Tag as MyTreeViewNode). Parent != m_Root)
                     {
-                        bitmap = ((l.Tag as MyTreeViewNode).Expanded ? minus : plus);                                        
-                        g.DrawImage(bitmap, l.Left - xOffset, l.Top + yOffset);
+                        MyTreeViewNode node = (MyTreeViewNode)l.Tag;
+                        if (node.Nodes.Count > 0 && node.Parent != m_Root)
+                        {
+                            bitmap = (node.Expanded ? minus : plus);                                        
+                            g.DrawImage(bitmap, l.Left - xOffset, l.Top + yOffset);
+                        }
                     }
             }
         }
@@ -224,6 +247,11 @@ namespace Photo.org
                             l.AutoSize = true;
                             l.Font = new Font("Tahoma", 12);
                             l.MouseDown += l_MouseDown;
+                            l.AllowDrop = true;
+                            l.DragEnter += l_DragEnter;
+                            l.DragDrop += l_DragDrop;
+                            l.DragOver += l_DragOver;
+                            l.DragLeave += l_DragLeave;
 
                             m_NodeControls.Add(l);
                             this.Controls.Add(l);
@@ -255,6 +283,36 @@ namespace Photo.org
                 if (node.Expanded)
                     DrawNodes(node, x + 1, ref y, ref nodeCount);
             }            
+        }
+
+        void l_DragLeave(object sender, EventArgs e)
+        {
+            Label label = (Label)sender;
+            label.Font = new Font(label.Font, FontStyle.Regular);
+        }
+
+        void l_DragEnter(object sender, DragEventArgs e)
+        {
+            if (this.AllowDrop && NodeDragEnter != null)
+                NodeDragEnter((MyTreeViewNode)((Label)sender).Tag, e);
+        }
+
+        void l_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Effect == DragDropEffects.None)
+                return;
+
+            Label label = (Label)sender;
+            label.Font = new Font(label.Font, FontStyle.Bold);
+        }
+
+        void l_DragDrop(object sender, DragEventArgs e)
+        {
+            Label label = (Label)sender;
+            label.Font = new Font(label.Font, FontStyle.Regular);
+
+            if (NodeDragDrop != null)
+                NodeDragDrop((MyTreeViewNode)label.Tag, e);
         }
 
         void l_MouseDown(object sender, MouseEventArgs e)
@@ -350,6 +408,12 @@ namespace Photo.org
                     m_SelectedNodes.Remove(node);
                 node.BackColor = Color.White;
             }
+        }
+
+        internal void CollapseAll()
+        {
+            foreach (MyTreeViewNode node in m_AllNodes.Values)
+                node.Expanded = false;
         }
     }
 

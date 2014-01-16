@@ -187,7 +187,7 @@ namespace Photo.org
 
 #region private members
 
-        private static bool m_UseNewTree = false;
+        private static bool m_UseNewTree = true;
         private static MyTreeView m_MyTreeView = null;
         private static MyTreeViewNode m_MyAllFilesNode = null;
         private static MyTreeViewNode m_MyUnassignedNode = null;
@@ -440,16 +440,95 @@ namespace Photo.org
 
             m_MyTreeView = new MyTreeView();
             m_MyTreeView.Dock = DockStyle.Fill;
+            m_MyTreeView.AllowDrop = true;
 
+            m_MyTreeView.MouseDown += m_MyTreeView_MouseDown;
             m_MyTreeView.NodeSelectionChanged += m_MyTreeView_NodeSelectionChanged;
             m_MyTreeView.MouseWheelOutsideControl += m_MyTreeView_MouseWheelOutsideControl;
             m_MyTreeView.NodeMouseDown += m_MyTreeView_NodeMouseDown;
             m_MyTreeView.NodeTextChanged += m_MyTreeView_NodeTextChanged;
+            m_MyTreeView.NodeDragEnter += m_MyTreeView_NodeDragEnter;
+            m_MyTreeView.NodeDragDrop += m_MyTreeView_NodeDragDrop;
 
             if (m_UseNewTree)
                 controlCollection.Add(m_MyTreeView);
             else
                 controlCollection.Add(m_TreeView);
+        }
+
+        static void m_MyTreeView_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+                ShowContextMenu(e.Location);
+        }
+
+        private static void ShowContextMenu(Point location)
+        {
+            ContextMenu menu = new ContextMenu();
+            MenuItem mi = null;
+
+            mi = new MenuItem();
+            mi.Text = "Collapse all";
+            mi.Name = "CollapseTree";
+            mi.Click += new EventHandler(contextMenuItem_Click);
+            menu.MenuItems.Add(mi);                   
+
+            menu.Show(m_MyTreeView, location);
+        }
+
+        static void m_MyTreeView_NodeDragDrop(MyTreeViewNode sender, DragEventArgs e)
+        {
+            if (Status.ReadOnly)
+                return;
+
+            if (Status.Busy)
+                return;            
+
+            if (e.Data.GetDataPresent(typeof(List<Photo>)))
+            {
+                if (sender.Category.Id == Guids.AllFiles || sender.Category.Id == Guids.Unassigned)
+                    return;
+
+                List<Photo> photos = (List<Photo>)e.Data.GetData(typeof(List<Photo>));
+
+                SetPhotoCategory(photos, sender.Category.Id, ((e.KeyState & KeyStates.Shift) == KeyStates.Shift));
+            }
+            else if (e.Data.GetDataPresent(typeof(TreeNode)))
+            {
+                //if (categoryId == Guids.Unassigned)
+                //    return;
+
+                //TreeNode movingNode = (TreeNode)e.Data.GetData(typeof(TreeNode));
+                //Category movingCategory = (Category)movingNode.Tag;
+
+                //if (movingNode == tn || movingNode.Parent == tn)
+                //    return;
+
+                //if (MessageBox.Show("Do you want to move category " + movingCategory.Name + " under category " + tn.Text + "?", "", MessageBoxButtons.YesNo) == DialogResult.No)
+                //    return;
+
+                //Database.BeginTransaction();
+
+                //RemoveCategoryPathFromBranch(movingNode);
+
+                //m_TreeView.Nodes.Remove(movingNode);
+                //tn.Nodes.Add(movingNode);
+
+                //CreateCategoryPathForBrach(movingNode);
+
+                //if (categoryId == Guids.AllFiles)
+                //    categoryId = Guid.Empty;
+
+                //Database.UpdateCategory(movingCategory.Id, categoryId, movingCategory.Name);
+
+                //Database.Commit();
+            }
+        }
+
+        static void m_MyTreeView_NodeDragEnter(MyTreeViewNode sender, DragEventArgs e)
+        {
+            if (sender.Parent.Key != null)
+                e.Effect = DragDropEffects.Link;
         }
 
         static void m_MyTreeView_NodeTextChanged(MyTreeViewNode node)
@@ -949,6 +1028,11 @@ namespace Photo.org
                     //    break;
                     case "SetCategoryColor":                        
                         SetCategoryColor(m_MyMenuTargetNode);
+                        break;
+                    case "CollapseTree":
+                        m_MyTreeView.CollapseAll();
+                        m_MyAllFilesNode.Expand();
+                        m_MyTreeView.RefreshOrWhatever();
                         break;
                 }
 

@@ -50,6 +50,7 @@ namespace Photo.org
 
             m_PictureBox.MouseDown += new MouseEventHandler(m_PictureBox_MouseDown);
             m_PictureBox.MouseMove += new MouseEventHandler(m_PictureBox_MouseMove);
+            m_PictureBox.MouseUp += m_PictureBox_MouseUp;
             m_PictureBox.MouseLeave += new EventHandler(m_PictureBox_MouseLeave);
             m_PictureBox.MouseDoubleClick += new MouseEventHandler(m_PictureBox_MouseDoubleClick);
             m_PictureBox.Paint += new PaintEventHandler(m_PictureBox_Paint);
@@ -63,6 +64,12 @@ namespace Photo.org
             controlCollection.Add(m_FilenameLabel);            
             controlCollection.Add(m_CategoriesPanel);            
             controlCollection.Add(m_PictureBox);
+        }
+
+        static void m_PictureBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            m_PanningOrigin = Point.Empty;
+            m_PictureBox.Cursor = Cursors.Default;
         }
         
         static void m_PictureBox_Paint(object sender, PaintEventArgs e)
@@ -313,6 +320,7 @@ namespace Photo.org
                 m_ZoomFactor = 1M;
                 m_ZoomCenter = new Point(m_Image.Width / 2, m_Image.Height / 2);
                 m_PanningOrigin = Point.Empty;
+                m_PictureBox.Cursor = Cursors.Default;
 
                 Status.ActiveComponent = Component.Viewer;                
 
@@ -455,25 +463,42 @@ namespace Photo.org
                 m_ReadyToDrag = true;
 
             if (e.Button == MouseButtons.Right)
+            {
                 m_PanningOrigin = e.Location;
+
+                if (m_ZoomFactor == 1M)
+                    m_PictureBox.Cursor = Cursors.NoMoveVert;
+                else
+                    m_PictureBox.Cursor = Cursors.NoMove2D;
+            }
         }
 
         static void m_PictureBox_MouseLeave(object sender, EventArgs e)
         {
             m_ReadyToDrag = false;
+
+            m_PanningOrigin = Point.Empty;
+            m_PictureBox.Cursor = Cursors.Default;
         }
 
         static void m_PictureBox_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button != MouseButtons.Right)
+            {
                 m_PanningOrigin = Point.Empty;
+                m_PictureBox.Cursor = Cursors.Default;
+            }
 
             if (m_PanningOrigin != Point.Empty)
             {
-                m_ZoomCenter.X -= (int)((e.X - m_PanningOrigin.X) / m_ZoomFactor);
-                m_ZoomCenter.Y -= (int)((e.Y - m_PanningOrigin.Y) / m_ZoomFactor);
-                m_PanningOrigin = e.Location;
-                HandleZoomLevel();
+                if (m_ZoomFactor != 1M)
+                {
+                    m_ZoomCenter.X -= (int)((e.X - m_PanningOrigin.X) / m_ZoomFactor);
+                    m_ZoomCenter.Y -= (int)((e.Y - m_PanningOrigin.Y) / m_ZoomFactor);
+                    HandleZoomLevel();
+                }
+
+                m_PanningOrigin = e.Location;                
             }
 
             //if (Core.IsCtrlPressed())
@@ -523,6 +548,14 @@ namespace Photo.org
             else
             {
                 Zoom(mouseWheelForward);
+
+                if (m_PanningOrigin != Point.Empty)
+                { 
+                    if (m_ZoomFactor == 1M)
+                        m_PictureBox.Cursor = Cursors.NoMoveVert;
+                    else
+                        m_PictureBox.Cursor = Cursors.NoMove2D;
+                }
             }
         }
 
