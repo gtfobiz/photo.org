@@ -15,5 +15,13 @@ namespace Photo.org
         {
             InitializeComponent();
         }
+
+        public string InputText {
+            get
+            {
+                return f_InputText.Text;
+            }
+            //set; 
+        }
     }
 }

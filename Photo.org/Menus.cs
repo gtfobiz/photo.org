@@ -119,6 +119,11 @@ namespace Photo.org
             m_MenuStrip.Items.Add(menu);
             parent = menu;
 
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsSearchByFilename", "Search by &filename"));
+            menu.Name = "Tools_SearchByFilename";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsMaintenance", "&Maintenance"));
             menu.Name = "Tools_Maintenance";
             menu.Click += new EventHandler(menu_Click);
@@ -146,6 +151,13 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "categoryHide", "&Hide..."));
             menu.Name = "Category_Hide";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            parent.DropDownItems.Add("-");
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "categoryLocate", "&Locate..."));
+            menu.Name = "Category_Locate";
             menu.Click += new EventHandler(menu_Click);
             parent.DropDownItems.Add(menu);
         }
@@ -232,6 +244,9 @@ namespace Photo.org
                 case "Tools_Statistics":
                     Database.ShowStatistics();
                     break;
+                case "Tools_SearchByFilename":
+                    Thumbnails.SearchByFilename();
+                    break;
                 case "Category_Select":
                     Categories.ShowCategoryDialog(CategoryDialogMode.Select);
                     break;
@@ -240,6 +255,9 @@ namespace Photo.org
                     break;
                 case "Category_Hide":
                     Categories.ShowCategoryDialog(CategoryDialogMode.Hide);
+                    break;
+                case "Category_Locate":
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Locate);
                     break;
             }
         }

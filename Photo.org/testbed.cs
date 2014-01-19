@@ -23,7 +23,7 @@ namespace Photo.org
             tv.NodeSelectionChanged += tv_NodeSelectionChanged;
 
             //tv.AddNode(Guids.Unassigned, "Unassigned");
-            //MyTreeViewNode n = tv.Nodes.Add(Guids.AllFiles, "All items");
+            //MyTreeNode n = tv.Nodes.Add(Guids.AllFiles, "All items");
 
             //n.Add(1, "testi1");
             //n.AddNode(2, "testi2").AddNode(3, "testi3");

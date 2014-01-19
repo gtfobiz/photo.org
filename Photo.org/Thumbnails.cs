@@ -415,7 +415,7 @@ namespace Photo.org
         /// Fetches photos that belong to all required categories.
         /// </summary>
         /// <param name="required"></param>
-        internal static void FetchPhotos(List<Guid> required)
+        internal static void FetchPhotos(List<Guid> required, string searchString)
         {
             Viewer.Hide();
             Show();
@@ -428,7 +428,11 @@ namespace Photo.org
 
             ClearPhotos();           
 
-            DataSet ds = Database.QueryPhotosByCategories(required);
+            DataSet ds = null;
+            if (required != null)
+                ds = Database.QueryPhotosByCategories(required);
+            else
+                ds = Database.QueryPhotosByFilename(searchString);
 
             DataRowCollection drc = ds.Tables["Photos"].Rows;
             Status.SetMaxValue(drc.Count);
@@ -455,9 +459,6 @@ namespace Photo.org
                         photo.Categories.Add(guid);
                     else
                         photo.AutoCategories.Add(guid);
-
-                    //if (guid != Guids.Hidden)
-                    //    Categories.GetCategoryByGuid(guid).PhotoCount++;
                 }
 
                 AddPhoto(photo);
@@ -682,6 +683,18 @@ namespace Photo.org
         internal static void MouseWheelOutsideTreeView(bool mouseWheelForward)
         {
             m_ThumbnailView.Scroll(!mouseWheelForward, false);
+        }
+
+        internal static void SearchByFilename()
+        {            
+            string x = Common.InputBox("kerro");
+            if (x == null)
+                return;
+
+            //TODO: poista valinnat puusta
+            //TODO: uusi puu ei toimi esim kannavaihdossa
+
+            FetchPhotos(null, x);            
         }
     }
 }

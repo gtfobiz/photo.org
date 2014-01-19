@@ -13,15 +13,15 @@ namespace Photo.org
     {
         internal delegate void NodeSelectionChangedDelegate();
         internal event NodeSelectionChangedDelegate NodeSelectionChanged;
-        internal delegate void NodeTextChangedDelegate(MyTreeViewNode node);
+        internal delegate void NodeTextChangedDelegate(MyTreeNode node);
         internal event NodeTextChangedDelegate NodeTextChanged;
-        internal delegate void NodeMouseDownDelegate(MyTreeViewNode node, MouseEventArgs e);
+        internal delegate void NodeMouseDownDelegate(MyTreeNode node, MouseEventArgs e);
         internal event NodeMouseDownDelegate NodeMouseDown;
         internal delegate void MouseWheelOutsideControlDelegate(object sender, short direction);
         internal event MouseWheelOutsideControlDelegate MouseWheelOutsideControl;
-        internal delegate void NodeDragEnterDelegate(MyTreeViewNode sender, DragEventArgs e);
+        internal delegate void NodeDragEnterDelegate(MyTreeNode sender, DragEventArgs e);
         internal event NodeDragEnterDelegate NodeDragEnter;
-        internal delegate void NodeDragDropDelegate(MyTreeViewNode sender, DragEventArgs e);
+        internal delegate void NodeDragDropDelegate(MyTreeNode sender, DragEventArgs e);
         internal event NodeDragDropDelegate NodeDragDrop;
 
         private List<Label> m_NodeControls = new List<Label>();
@@ -29,15 +29,16 @@ namespace Photo.org
         private const int c_LeftMargin = 4;
         private const int c_NodeHeight = 22;
         private const int c_NodeIndent = 16;
-        private MyTreeViewNode m_Root = null;
-        private Dictionary<object, MyTreeViewNode> m_AllNodes = new Dictionary<object, MyTreeViewNode>();
-        private List<MyTreeViewNode> m_Nodes = new List<MyTreeViewNode>();
-        private List<MyTreeViewNode> m_SelectedNodes = new List<MyTreeViewNode>();
+        private MyTreeNode m_Root = null;
+        private Dictionary<object, MyTreeNode> m_AllNodes = new Dictionary<object, MyTreeNode>();
+        private List<MyTreeNode> m_Nodes = new List<MyTreeNode>();
+        private List<MyTreeNode> m_SelectedNodes = new List<MyTreeNode>();
         private VScrollBar m_ScrollBar = new VScrollBar();
-        private MyTreeViewNode m_NodeBeingRenamed = null;
+        private MyTreeNode m_NodeBeingRenamed = null;
         private TextBox m_NodeRenameBox = new TextBox();
+        private Timer m_NodeHightlightTimer = null;
 
-        internal List<MyTreeViewNode> SelectedNodes
+        internal List<MyTreeNode> SelectedNodes
         {
             get { return m_SelectedNodes; }
             set { m_SelectedNodes = value; }
@@ -52,7 +53,7 @@ namespace Photo.org
         internal MyTreeView()
         {
             InitializeComponent();
-            m_Root = new MyTreeViewNode(this, null, null);
+            ClearNodes();            
         }
 
         private void InitializeComponent()
@@ -132,9 +133,9 @@ namespace Photo.org
                 yOffset = c_NodeHeight / 2 - (minus.Height / 2) - 1;
 
                 foreach (Label l in m_NodeControls)
-                    if (l.Visible) // && (l.Tag as MyTreeViewNode).Nodes.Count > 0 && (l.Tag as MyTreeViewNode). Parent != m_Root)
+                    if (l.Visible) // && (l.Tag as MyTreeNode).Nodes.Count > 0 && (l.Tag as MyTreeNode). Parent != m_Root)
                     {
-                        MyTreeViewNode node = (MyTreeViewNode)l.Tag;
+                        MyTreeNode node = (MyTreeNode)l.Tag;
                         if (node.Nodes.Count > 0 && node.Parent != m_Root)
                         {
                             bitmap = (node.Expanded ? minus : plus);                                        
@@ -167,12 +168,12 @@ namespace Photo.org
             base.WndProc(ref m);
         }
 
-        internal void RemoveNode(MyTreeViewNode node)
+        internal void RemoveNode(MyTreeNode node)
         {
             node.Parent.Nodes.Remove(node);
         }
 
-        internal MyTreeViewNode FindNode(object key)
+        internal MyTreeNode FindNode(object key)
         {
             if (!m_AllNodes.ContainsKey(key))
                 return null;
@@ -200,7 +201,7 @@ namespace Photo.org
                 foreach (Label l in m_NodeControls)
                     if (e.Y >= l.Top && e.Y <= l.Top + l.Height && e.X < l.Left && e.X > l.Left - c_NodeIndent && e.X > c_LeftMargin)
                     {
-                        (l.Tag as MyTreeViewNode).Expanded = !(l.Tag as MyTreeViewNode).Expanded;                        
+                        (l.Tag as MyTreeNode).Expanded = !(l.Tag as MyTreeNode).Expanded;                        
                         break;   
                     }
             }
@@ -230,11 +231,53 @@ namespace Photo.org
             Invalidate();
         }
 
-        private void DrawNodes(MyTreeViewNode parent, int x, ref int y, ref int nodeCount)
+        internal void HighlightNode(object key)
+        {
+            if (!m_AllNodes.ContainsKey(key))
+                return;
+
+            MyTreeNode node = m_AllNodes[key];
+            while (node.Key != null)
+            {
+                node.Parent.Expand();
+                node = node.Parent;
+            }
+
+            RefreshOrWhatever();
+
+            //TODO: varmista että on näkyvissä
+
+            m_AllNodes[key].Blink();
+
+        //    Timer xm_NodeHightlightTimer = new Timer();
+        //    xm_NodeHightlightTimer.Tag = 20;
+        //    xm_NodeHightlightTimer.Interval = 100;
+        //    xm_NodeHightlightTimer.Tick += NodeHighlightTimer_Tick;
+        //    xm_NodeHightlightTimer.Start();
+        //}
+
+        //void NodeHighlightTimer_Tick(object sender, EventArgs e)
+        //{            
+        //    int i = ((int)((Timer)sender).Tag);
+
+        //    if (i == 0)
+        //    {
+        //        ((Timer)sender).Stop();
+        //        ((Timer)sender).Dispose();
+        //    }
+
+        //    ((Timer)sender).Tag = i - 1;
+
+            
+
+        //    RefreshOrWhatever();
+        }        
+
+        private void DrawNodes(MyTreeNode parent, int x, ref int y, ref int nodeCount)
         {
             Label l = null;
 
-            foreach (MyTreeViewNode node in parent.Nodes)
+            foreach (MyTreeNode node in parent.Nodes)
             {
                 nodeCount++;
                 if (nodeCount >= m_ScrollBar.Value)
@@ -294,7 +337,7 @@ namespace Photo.org
         void l_DragEnter(object sender, DragEventArgs e)
         {
             if (this.AllowDrop && NodeDragEnter != null)
-                NodeDragEnter((MyTreeViewNode)((Label)sender).Tag, e);
+                NodeDragEnter((MyTreeNode)((Label)sender).Tag, e);
         }
 
         void l_DragOver(object sender, DragEventArgs e)
@@ -312,12 +355,12 @@ namespace Photo.org
             label.Font = new Font(label.Font, FontStyle.Regular);
 
             if (NodeDragDrop != null)
-                NodeDragDrop((MyTreeViewNode)label.Tag, e);
+                NodeDragDrop((MyTreeNode)label.Tag, e);
         }
 
         void l_MouseDown(object sender, MouseEventArgs e)
         {
-            MyTreeViewNode senderNode = (sender as Label).Tag as MyTreeViewNode;
+            MyTreeNode senderNode = (sender as Label).Tag as MyTreeNode;
 
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
             { 
@@ -342,7 +385,7 @@ namespace Photo.org
                     NodeSelectionChanged();
         }
 
-        internal bool OnAddNode(MyTreeViewNode node)
+        internal bool OnAddNode(MyTreeNode node)
         {
             if (m_AllNodes.ContainsKey(node.Key))
                 return false;
@@ -352,12 +395,12 @@ namespace Photo.org
             return true;
         }
 
-        internal void OnRemoveNode(MyTreeViewNode node)
+        internal void OnRemoveNode(MyTreeNode node)
         {
             m_AllNodes.Remove(node.Key);
         }
 
-        internal void EditLabel(MyTreeViewNode node)
+        internal void EditLabel(MyTreeNode node)
         {
             m_NodeBeingRenamed = node;
             m_NodeRenameBox.Text = node.Text;
@@ -366,7 +409,7 @@ namespace Photo.org
 
         private void FinishLabelEdit()
         {
-            MyTreeViewNode node = m_NodeBeingRenamed;
+            MyTreeNode node = m_NodeBeingRenamed;
 
             if (node != null)
                 m_NodeBeingRenamed.Text = m_NodeRenameBox.Text;
@@ -383,7 +426,7 @@ namespace Photo.org
             RefreshOrWhatever();
         }
 
-        internal void SelectNode(MyTreeViewNode node)
+        internal void SelectNode(MyTreeNode node)
         {
             SetNodeSelectState(node, true);
         }
@@ -394,7 +437,7 @@ namespace Photo.org
                 SetNodeSelectState(m_SelectedNodes[0], false);
         }
 
-        private void SetNodeSelectState(MyTreeViewNode node, bool selected)
+        private void SetNodeSelectState(MyTreeNode node, bool selected)
         {
             if (selected)
             {
@@ -412,25 +455,33 @@ namespace Photo.org
 
         internal void CollapseAll()
         {
-            foreach (MyTreeViewNode node in m_AllNodes.Values)
+            foreach (MyTreeNode node in m_AllNodes.Values)
                 node.Expanded = false;
+        }
+
+        internal void ClearNodes()
+        {
+            m_SelectedNodes.Clear();
+            m_AllNodes.Clear();
+
+            m_Root = new MyTreeNode(this, null, null);
         }
     }
 
-    internal class MyNodes : List<MyTreeViewNode>
+    internal class MyNodes : List<MyTreeNode>
     {
         private MyTreeView m_TreeViewControl = null;
-        private MyTreeViewNode m_Parent = null;
+        private MyTreeNode m_Parent = null;
 
-        internal MyNodes(MyTreeView treeViewControl, MyTreeViewNode parent)
+        internal MyNodes(MyTreeView treeViewControl, MyTreeNode parent)
         {
             m_TreeViewControl = treeViewControl;
             m_Parent = parent;
         }
 
-        internal MyTreeViewNode Add(object key, string text)
+        internal MyTreeNode Add(object key, string text)
         {
-            MyTreeViewNode node = new MyTreeViewNode(m_TreeViewControl, key, text);
+            MyTreeNode node = new MyTreeNode(m_TreeViewControl, key, text);
             if (!m_TreeViewControl.OnAddNode(node))
                 return null;
 
@@ -447,7 +498,7 @@ namespace Photo.org
                 Remove(this[0]);
         }
 
-        new internal void Remove(MyTreeViewNode node)
+        new internal void Remove(MyTreeNode node)
         {
             node.Nodes.Clear();
 
@@ -459,13 +510,13 @@ namespace Photo.org
             base.Remove(node);
         }
 
-        new internal void Add(MyTreeViewNode node)
+        new internal void Add(MyTreeNode node)
         {
             throw new NotSupportedException();
         }
     }
 
-    internal class MyTreeViewNode
+    internal class MyTreeNode
     {        
         private MyNodes m_Nodes = null;
         private Category m_Category = null;
@@ -474,7 +525,10 @@ namespace Photo.org
         private bool m_Expanded = false;
         private Color m_BackColor = Color.White;
         private MyTreeView m_TreeViewControl = null;
-        private MyTreeViewNode m_Parent = null;
+        private MyTreeNode m_Parent = null;
+        private int m_BlinkCount = 0;
+        private Color m_SavedBackColor = Color.White;
+        private bool m_BlinkState = false;
 
         internal MyTreeView TreeViewControl
         {
@@ -482,7 +536,7 @@ namespace Photo.org
             set { m_TreeViewControl = value; }
         }        
 
-        internal MyTreeViewNode Parent
+        internal MyTreeNode Parent
         {
             get { return m_Parent; }
             set { m_Parent = value; }
@@ -491,7 +545,10 @@ namespace Photo.org
         public Color BackColor
         {
             get { return m_BackColor; }
-            set { m_BackColor = value; }
+            set { 
+                m_BackColor = value;
+                m_SavedBackColor = value;
+            }
         }
 
         internal Category Category
@@ -529,7 +586,7 @@ namespace Photo.org
             set { m_Text = value; }
         }
 
-        internal MyTreeViewNode(MyTreeView treeViewControl, object key, string text)
+        internal MyTreeNode(MyTreeView treeViewControl, object key, string text)
         {
             m_TreeViewControl = treeViewControl;
             m_Nodes = new MyNodes(treeViewControl, this);
@@ -541,6 +598,35 @@ namespace Photo.org
         {
             get { return m_Nodes; }
             //set { m_Nodes = value; }
+        }
+
+        internal void Blink()
+        {
+            m_SavedBackColor = this.BackColor;
+            m_BlinkCount = 10;
+            m_BlinkState = false;
+            Timer blinkTimer = new Timer();
+            blinkTimer.Interval = 180;
+            blinkTimer.Tick += blinkTimer_Tick;
+            blinkTimer.Start();
+        }
+
+        void blinkTimer_Tick(object sender, EventArgs e)
+        {
+            m_BlinkCount--;
+            if (m_BlinkCount > 0)
+            {
+                m_BlinkState = !m_BlinkState;
+                m_BackColor = (m_BlinkState ? Color.Cyan : m_SavedBackColor);
+            }
+            else
+            {
+                m_BackColor = m_SavedBackColor;
+                ((Timer)sender).Stop();
+                ((Timer)sender).Dispose();
+            }         
+
+            m_TreeViewControl.RefreshOrWhatever(); //TODO: pelkkä nodelabel            
         }
     }
 }

@@ -423,16 +423,17 @@ namespace Photo.org
             MenuItem mi = null;
 
             mi = new MenuItem();
-            mi.Text = Multilingual.GetText("viewerLabelContextMenu", "removeCategory", "Remove category");
-            mi.Name = "RemoveCategory";
+            mi.Text = Multilingual.GetText("viewerLabelContextMenu", "locateCategory", "Locate category");
+            mi.Name = "LocateCategory";
+            mi.DefaultItem = true;
             mi.Click += new EventHandler(mi_Click);
             menu.MenuItems.Add(mi);
 
-            //mi = new MenuItem();
-            //mi.Text = Multilingual.GetText("viewerLabelContextMenu", "LocateCategory", "Locate category");
-            //mi.Name = "LocateCategory";
-            //mi.Click += new EventHandler(mi_Click);
-            //menu.MenuItems.Add(mi);
+            mi = new MenuItem();
+            mi.Text = Multilingual.GetText("viewerLabelContextMenu", "removeCategory", "Remove category");
+            mi.Name = "RemoveCategory";
+            mi.Click += new EventHandler(mi_Click);
+            menu.MenuItems.Add(mi);            
 
             m_ActiveCategoryLabel = categoryLabel;
             menu.Show(categoryLabel, location);            
@@ -444,6 +445,9 @@ namespace Photo.org
             {
                 case "RemoveCategory":
                     RemovePhotoCategory(m_ActiveCategoryLabel.Category.Id);
+                    break;
+                case "LocateCategory":
+                    Categories.LocateCategory(m_ActiveCategoryLabel.Category.Id);
                     break;
             }
             m_ActiveCategoryLabel = null;

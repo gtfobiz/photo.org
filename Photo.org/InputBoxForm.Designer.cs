@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.label1 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.f_InputText = new System.Windows.Forms.TextBox();
             this.cmdOk = new System.Windows.Forms.Button();
             this.cmdCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
@@ -43,12 +43,12 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "label1";
             // 
-            // textBox1
+            // f_InputText
             // 
-            this.textBox1.Location = new System.Drawing.Point(12, 25);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(554, 20);
-            this.textBox1.TabIndex = 1;
+            this.f_InputText.Location = new System.Drawing.Point(12, 25);
+            this.f_InputText.Name = "f_InputText";
+            this.f_InputText.Size = new System.Drawing.Size(554, 20);
+            this.f_InputText.TabIndex = 1;
             // 
             // cmdOk
             // 
@@ -77,7 +77,7 @@
             this.ClientSize = new System.Drawing.Size(714, 91);
             this.Controls.Add(this.cmdCancel);
             this.Controls.Add(this.cmdOk);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.f_InputText);
             this.Controls.Add(this.label1);
             this.Name = "InputBoxForm";
             this.ShowIcon = false;
@@ -92,7 +92,7 @@
         #endregion
 
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox f_InputText;
         private System.Windows.Forms.Button cmdOk;
         private System.Windows.Forms.Button cmdCancel;
     }

@@ -7,7 +7,7 @@ namespace Photo.org
 {
     internal enum Component { Photos, Viewer };
     internal enum SortBy { Filename, Folder, Filesize, ImportDate, Width, Height, Resolution, EXIFDate, Random };
-    internal enum CategoryDialogMode { Default, Select, Require, Hide, HideChildren };
+    internal enum CategoryDialogMode { Default, Select, Require, Hide, HideChildren, Locate };
 
     internal static class Guids
     {

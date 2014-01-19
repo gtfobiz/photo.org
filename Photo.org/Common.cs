@@ -233,7 +233,7 @@ namespace Photo.org
                 if (f.DialogResult == DialogResult.Cancel)
                     return null;
 
-                return "";
+                return f.InputText;
             }            
         }
 

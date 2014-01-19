@@ -511,6 +511,85 @@ namespace Photo.org
             return Query(sql, parameters);
         }
 
+        private static DataSet QueryPhotosBySqlWhere(string where, Dictionary<string, object> parameters)
+        {
+            if (!Status.ShowHiddenPhotos)
+            {
+                where += (where == "" ? "" : " and ");
+                where += "not exists(select 1 from PHOTO_CATEGORY ";
+                where += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
+            }
+
+            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
+            sql += "from PHOTO ph ";
+            sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
+            sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
+            if (where != "")
+                sql += " where " + where;
+            sql += " order by ph.PHOTO_ID";
+
+            if (!Status.ShowHiddenPhotos)
+            {
+                parameters.Add("@hidden", Guids.Hidden);
+            }
+
+            DataTable dt = Query(sql, parameters);
+            DataSet ds = new DataSet();
+
+            ds.Tables.Add("Photos");
+            DataColumnCollection dcc = ds.Tables["Photos"].Columns;
+            dcc.Add("PHOTO_ID");
+            dcc.Add("PATH");
+            dcc.Add("FILENAME");
+            dcc.Add("FILESIZE");
+            dcc.Add("IMPORT_DATE");
+
+            ds.Tables.Add("Categories");
+            dcc = ds.Tables["Categories"].Columns;
+            dcc.Add("PHOTO_ID");
+            dcc.Add("CATEGORY_ID");
+            dcc.Add("SOURCE");
+
+            Guid photoId = Guid.Empty, lastPhotoId = Guid.Empty;
+            DataRow resultRow = null;
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                photoId = new Guid(dr["PHOTO_ID"].ToString());
+                if (photoId != lastPhotoId)
+                {
+                    lastPhotoId = photoId;
+
+                    resultRow = ds.Tables["Photos"].NewRow();
+                    resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
+                    resultRow["PATH"] = dr["PATH"];
+                    resultRow["FILENAME"] = dr["FILENAME"];
+                    resultRow["FILESIZE"] = dr["FILESIZE"];
+                    resultRow["IMPORT_DATE"] = dr["IMPORT_DATE"];
+                    ds.Tables["Photos"].Rows.Add(resultRow);
+                }
+
+                if (dr["CATEGORY_ID"].ToString() != "")
+                {
+                    resultRow = ds.Tables["Categories"].NewRow();
+                    resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
+                    resultRow["CATEGORY_ID"] = dr["CATEGORY_ID"];
+                    resultRow["SOURCE"] = dr["SOURCE"];
+                    ds.Tables["Categories"].Rows.Add(resultRow);
+                }
+            }
+
+            return ds;
+        }
+
+        internal static DataSet QueryPhotosByFilename(string searchString)
+        {            
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            parameters.Add("@filename", "%" + searchString + "%");
+            string where = "FILENAME like @filename";
+            return QueryPhotosBySqlWhere(where, parameters);
+        }
+
         /// <summary>
         /// Fetches photos and its categories based on category selections.
         /// </summary>
@@ -539,21 +618,21 @@ namespace Photo.org
                 }
             }
 
-            if (!Status.ShowHiddenPhotos)
-            {
-                requiredSql += (requiredSql == "" ? "" : " and ");
-                requiredSql += "not exists(select 1 from PHOTO_CATEGORY ";
-                requiredSql += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
-            }
+            //if (!Status.ShowHiddenPhotos)
+            //{
+            //    requiredSql += (requiredSql == "" ? "" : " and ");
+            //    requiredSql += "not exists(select 1 from PHOTO_CATEGORY ";
+            //    requiredSql += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
+            //}
 
             Dictionary<string, object> parameters = new Dictionary<string, object>();
-            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
-            sql += "from PHOTO ph ";
-            sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
-            sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
-            if (requiredSql != "")
-                sql += " where " + requiredSql;
-            sql += " order by ph.PHOTO_ID";
+            //string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
+            //sql += "from PHOTO ph ";
+            //sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
+            //sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
+            //if (requiredSql != "")
+            //    sql += " where " + requiredSql;
+            //sql += " order by ph.PHOTO_ID";
 
             for (int i = 0; i < categories.Count; i++)
             {
@@ -561,58 +640,60 @@ namespace Photo.org
                     parameters.Add("@required" + i.ToString(), categories[i]);
             }
 
-            if (!Status.ShowHiddenPhotos)
-            {
-                parameters.Add("@hidden", Guids.Hidden);
-            }
+            return QueryPhotosBySqlWhere(requiredSql, parameters);
 
-            DataTable dt = Query(sql, parameters);
-            DataSet ds = new DataSet();
+            //if (!Status.ShowHiddenPhotos)
+            //{
+            //    parameters.Add("@hidden", Guids.Hidden);
+            //}
 
-            ds.Tables.Add("Photos");
-            DataColumnCollection dcc = ds.Tables["Photos"].Columns;
-            dcc.Add("PHOTO_ID");
-            dcc.Add("PATH");
-            dcc.Add("FILENAME");
-            dcc.Add("FILESIZE");
-            dcc.Add("IMPORT_DATE");
+            //DataTable dt = Query(sql, parameters);
+            //DataSet ds = new DataSet();
 
-            ds.Tables.Add("Categories");
-            dcc = ds.Tables["Categories"].Columns;
-            dcc.Add("PHOTO_ID");
-            dcc.Add("CATEGORY_ID");
-            dcc.Add("SOURCE");
+            //ds.Tables.Add("Photos");
+            //DataColumnCollection dcc = ds.Tables["Photos"].Columns;
+            //dcc.Add("PHOTO_ID");
+            //dcc.Add("PATH");
+            //dcc.Add("FILENAME");
+            //dcc.Add("FILESIZE");
+            //dcc.Add("IMPORT_DATE");
 
-            Guid photoId = Guid.Empty, lastPhotoId = Guid.Empty;
-            DataRow resultRow = null;
+            //ds.Tables.Add("Categories");
+            //dcc = ds.Tables["Categories"].Columns;
+            //dcc.Add("PHOTO_ID");
+            //dcc.Add("CATEGORY_ID");
+            //dcc.Add("SOURCE");
 
-            foreach (DataRow dr in dt.Rows)
-            { 
-                photoId = new Guid(dr["PHOTO_ID"].ToString());
-                if (photoId != lastPhotoId)
-                {
-                    lastPhotoId = photoId;
+            //Guid photoId = Guid.Empty, lastPhotoId = Guid.Empty;
+            //DataRow resultRow = null;
 
-                    resultRow = ds.Tables["Photos"].NewRow();
-                    resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
-                    resultRow["PATH"] = dr["PATH"];
-                    resultRow["FILENAME"] = dr["FILENAME"];
-                    resultRow["FILESIZE"] = dr["FILESIZE"];
-                    resultRow["IMPORT_DATE"] = dr["IMPORT_DATE"];
-                    ds.Tables["Photos"].Rows.Add(resultRow);                    
-                }
+            //foreach (DataRow dr in dt.Rows)
+            //{ 
+            //    photoId = new Guid(dr["PHOTO_ID"].ToString());
+            //    if (photoId != lastPhotoId)
+            //    {
+            //        lastPhotoId = photoId;
 
-                if (dr["CATEGORY_ID"].ToString() != "")
-                {
-                    resultRow = ds.Tables["Categories"].NewRow();
-                    resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
-                    resultRow["CATEGORY_ID"] = dr["CATEGORY_ID"];
-                    resultRow["SOURCE"] = dr["SOURCE"];
-                    ds.Tables["Categories"].Rows.Add(resultRow);
-                }
-            }
+            //        resultRow = ds.Tables["Photos"].NewRow();
+            //        resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
+            //        resultRow["PATH"] = dr["PATH"];
+            //        resultRow["FILENAME"] = dr["FILENAME"];
+            //        resultRow["FILESIZE"] = dr["FILESIZE"];
+            //        resultRow["IMPORT_DATE"] = dr["IMPORT_DATE"];
+            //        ds.Tables["Photos"].Rows.Add(resultRow);                    
+            //    }
 
-            return ds;
+            //    if (dr["CATEGORY_ID"].ToString() != "")
+            //    {
+            //        resultRow = ds.Tables["Categories"].NewRow();
+            //        resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
+            //        resultRow["CATEGORY_ID"] = dr["CATEGORY_ID"];
+            //        resultRow["SOURCE"] = dr["SOURCE"];
+            //        ds.Tables["Categories"].Rows.Add(resultRow);
+            //    }
+            //}
+
+            //return ds;
         }
 
         //TODO: importin aikana ja jälkeen näkyy alhaal kuvien aikaisempi määrä
