@@ -38,9 +38,9 @@ namespace Photo.org
             {
                 fi = new FileInfo(file);
                 extension = fi.Extension.ToLower();
-                if (extension == ".jpg" || extension == ".jpeg" || extension == ".bmp" || extension == ".gif" || extension == ".png")
+                if (extension == ".jpg" || extension == ".jpeg" || extension == ".bmp" || extension == ".gif" || extension == ".png" || extension == ".avi" || extension == ".mpg" || extension == ".mpeg" || extension == ".mp4")
                 {
-                    path = fi.DirectoryName.ToLower();                   
+                    path = fi.DirectoryName.ToLower();
                     if (path != lastPath)
                     {
                         Database.Commit();
@@ -65,40 +65,54 @@ namespace Photo.org
                     }
                     
                     if (!existingFiles.Contains(fi.Name.ToLower()))
-                    {
+                    {                       
                         photo = new Photo(file);
-                        if (photo.Hash != null)
+
+                        if (photo.IsVideo)
                         {
-                            bool photoAlreadyExists = false;
-                            if (Database.HashAlreadyExists(photo.Hash))
-                                foreach (Photo p in Database.GetPhotosByHash(photo.Hash))
-                                    if (!File.Exists(p.FilenameWithPath) && (p.Filename.ToLower() == photo.Filename.ToLower() || p.FileSize == photo.FileSize))
-                                    {
-                                        Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
-                                        photoAlreadyExists = true;
-                                        break;
-                                    }
+                            // GetVideosBySize
 
-                            if (!photoAlreadyExists)
-                                Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height);                            
+                            // ...
 
-                            //try
-                            //{
-                            //    Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height);
-                            //}
-                            //catch (Exception e)
-                            //{
-                            //    if (e.Message.Contains("HASH"))
-                            //    {
-                            //        Photo p = Database.GetPhotoByHash(photo.Hash);
-                            //        if (!File.Exists(p.FilenameWithPath))
-                            //            Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
-                            //    }
-                            //    else
-                            //    {
-                            //        throw e;
-                            //    }
-                            //}
+                            Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height, photo.IsVideo);
+
+                            // TODO
+                        }
+                        else
+                        {
+                            if (photo.Hash != null)
+                            {
+                                bool photoAlreadyExists = false;
+                                if (Database.HashAlreadyExists(photo.Hash))
+                                    foreach (Photo p in Database.GetPhotosByHash(photo.Hash))
+                                        if (!File.Exists(p.FilenameWithPath) && (p.Filename.ToLower() == photo.Filename.ToLower() || p.FileSize == photo.FileSize))
+                                        {
+                                            Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
+                                            photoAlreadyExists = true;
+                                            break;
+                                        }
+
+                                if (!photoAlreadyExists)
+                                    Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height, photo.IsVideo);
+
+                                //try
+                                //{
+                                //    Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height);
+                                //}
+                                //catch (Exception e)
+                                //{
+                                //    if (e.Message.Contains("HASH"))
+                                //    {
+                                //        Photo p = Database.GetPhotoByHash(photo.Hash);
+                                //        if (!File.Exists(p.FilenameWithPath))
+                                //            Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
+                                //    }
+                                //    else
+                                //    {
+                                //        throw e;
+                                //    }
+                                //}
+                            }
                         }
                     }
                 }

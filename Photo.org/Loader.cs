@@ -27,10 +27,13 @@ namespace Photo.org
             {
                 if ((photo = Worklist.GetWork(worklistId)) == null)
                     return;
-
+                
                 thumbnail = photo.LoadThumbnail();
                 if (thumbnail == null)
-                    thumbnail = photo.CreateThumbnail();
+                    if (photo.IsVideo)
+                        thumbnail = photo.CreateThumbnailFromVideo();
+                    else
+                        thumbnail = photo.CreateThumbnail();
 
                 Worklist.ThumbnailLoaded(photo, photo.LoadThumbnail());
             }            

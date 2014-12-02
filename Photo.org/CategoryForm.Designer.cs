@@ -34,14 +34,15 @@
             // 
             // lstCategories
             // 
-            this.lstCategories.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.lstCategories.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.lstCategories.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lstCategories.FormattingEnabled = true;
             this.lstCategories.ItemHeight = 16;
             this.lstCategories.Location = new System.Drawing.Point(12, 31);
             this.lstCategories.Name = "lstCategories";
+            this.lstCategories.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.lstCategories.Size = new System.Drawing.Size(260, 212);
             this.lstCategories.TabIndex = 1;
             this.lstCategories.Click += new System.EventHandler(this.lstCategories_Click);
@@ -65,9 +66,9 @@
             this.Name = "CategoryForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "CategoryForm";
-            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.CategoryForm_KeyPress);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CategoryForm_FormClosing);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CategoryForm_KeyDown);
+            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.CategoryForm_KeyPress);
             this.ResumeLayout(false);
 
         }

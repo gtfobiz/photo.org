@@ -23,5 +23,13 @@ namespace Photo.org
             }
             //set; 
         }
+
+        public string Prompt { 
+            //get;            
+            set
+            {
+                l_Prompt.Text = value;
+            }
+        }
     }
 }

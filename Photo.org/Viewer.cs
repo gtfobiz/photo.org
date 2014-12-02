@@ -85,6 +85,9 @@ namespace Photo.org
 
         static void Owner_Resize(object sender, EventArgs e)
         {
+            if (Status.ActiveComponent != Component.Viewer)
+                return;
+
             HandleZoomLevel();
             SetSizeMode();
         }

@@ -81,8 +81,8 @@ namespace Photo.org
                 if (f.SelectedCategories.Count == 0)
                     return;
 
-                if (m_UseNewTree)
-                {
+                //if (m_UseNewTree)
+                //{
                     switch (mode)
                     {
                         case CategoryDialogMode.Select:
@@ -105,27 +105,27 @@ namespace Photo.org
                     }
 
                     m_MyTreeView.RefreshOrWhatever();
-                }
-                else
-                {
-                    switch (mode)
-                    {
-                        case CategoryDialogMode.Select:
-                            m_TreeView.ClearSelections();
-                            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
-                            FetchPhotos();
-                            break;
-                        case CategoryDialogMode.Require:
-                            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
-                            FetchPhotos();
-                            break;
-                        case CategoryDialogMode.Hide:
-                            Status.Busy = true;
-                            Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_TreeView.FindNode(f.SelectedCategories[0].ToString())), Guid.Empty);
-                            Status.Busy = false;
-                            break;
-                    }
-                }          
+                //}
+                //else
+                //{
+                //    switch (mode)
+                //    {
+                //        case CategoryDialogMode.Select:
+                //            m_TreeView.ClearSelections();
+                //            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                //            FetchPhotos();
+                //            break;
+                //        case CategoryDialogMode.Require:
+                //            m_TreeView.SelectNode(m_TreeView.FindNode(f.SelectedCategories[0].ToString()));
+                //            FetchPhotos();
+                //            break;
+                //        case CategoryDialogMode.Hide:
+                //            Status.Busy = true;
+                //            Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_TreeView.FindNode(f.SelectedCategories[0].ToString())), Guid.Empty);
+                //            Status.Busy = false;
+                //            break;
+                //    }
+                //}          
             }
         }
 
@@ -176,10 +176,10 @@ namespace Photo.org
 
         internal static void ClearCategories()
         {
-            if (m_UseNewTree)
+            //if (m_UseNewTree)
                 m_MyTreeView.ClearNodes();
-            else
-                m_TreeView.ClearNodes();
+            //else
+            //    m_TreeView.ClearNodes();
 
             m_Categories = new Dictionary<Guid, Category>();
             m_RecentCategories = new List<Category>();
@@ -187,27 +187,27 @@ namespace Photo.org
 
         internal static void RemoveSelections()
         {
-            if (m_UseNewTree)
-            {
+            //if (m_UseNewTree)
+            //{
                 m_MyTreeView.ClearSelections();
                 m_MyTreeView.RefreshOrWhatever();
-            }
-            else
-            {
-                m_TreeView.ClearSelections();
-            }
+            //}
+            //else
+            //{
+            //    m_TreeView.ClearSelections();
+            //}
         }
 
 #endregion
 
 #region private members
 
-        private static bool m_UseNewTree = false;
+        //private static bool m_UseNewTree = true;
         private static MyTreeView m_MyTreeView = null;
         private static MyTreeNode m_MyAllFilesNode = null;
         private static MyTreeNode m_MyUnassignedNode = null;
 
-        private static CustomTreeView m_TreeView = null;
+        //private static CustomTreeView m_TreeView = null;
         private static Dictionary<Guid, Category> m_Categories = new Dictionary<Guid, Category>();
         private static TreeNode m_AllFilesNode = null;
         private static TreeNode m_UnassignedNode = null;
@@ -223,45 +223,66 @@ namespace Photo.org
 
         private static void FetchPhotos()
         {
-            if (m_UseNewTree)
-            { 
+            //if (m_UseNewTree)
+            //{ 
                 foreach (MyTreeNode tn in m_MyNodesToHideFromResults)
                     if (tn.BackColor != Color.LightGreen)
                         tn.BackColor = Color.White;
                 m_MyNodesToHideFromResults.Clear();
                 m_MyTreeView.RefreshOrWhatever();
-            }
-//VANHAPUU
-            else
-            {
-                foreach (TreeNode tn in m_NodesToHideFromResults)
-                    tn.BackColor = Color.White;
-                m_NodesToHideFromResults.Clear();
-            }
+//            }
+////VANHAPUU
+//            else
+//            {
+//                foreach (TreeNode tn in m_NodesToHideFromResults)
+//                    tn.BackColor = Color.White;
+//                m_NodesToHideFromResults.Clear();
+//            }
 
             List<Guid> required = new List<Guid>();
 
-            if (m_UseNewTree)
-            {
+            //if (m_UseNewTree)
+            //{
                 foreach (MyTreeNode tn in m_MyTreeView.SelectedNodes)
                     if ((Guid)tn.Key != Guids.AllFiles)
                         required.Add((Guid)tn.Key);
-            }
-//VANHAPUU
-            else
-            {
-                foreach (TreeNode tn in m_TreeView.SelectedNodes)
-                    if (new Guid(tn.Name) != Guids.AllFiles)
-                        required.Add(new Guid(tn.Name));
-            }
+//            }
+////VANHAPUU
+//            else
+//            {
+//                foreach (TreeNode tn in m_TreeView.SelectedNodes)
+//                    if (new Guid(tn.Name) != Guids.AllFiles)
+//                        required.Add(new Guid(tn.Name));
+//            }
 
             Thumbnails.FetchPhotos(required, null);
         }
 
+        public static void RebuildCategoryPaths()
+        {
+            Database.BeginTransaction();
+
+            Database.DeleteAllCategoryPaths();
+
+            foreach (MyTreeNode node in m_MyTreeView.AllNodes.Values)
+                if (node.Category != null)
+                {
+                    Database.InsertCategoryPath(node.Category.Id, node.Category.Id);
+                    MyTreeNode parentNode = node.Parent;
+                    while (parentNode.Category != null)
+                    {
+                        Database.InsertCategoryPath(parentNode.Category.Id, node.Category.Id);
+                        parentNode = parentNode.Parent;
+                    }
+                }
+
+            Database.Commit();
+        }
+
         private static Guid AddCategory(string name, Guid parent)
         {
-            if (m_UseNewTree)
-            {
+            //if (m_UseNewTree)
+            //{
                 MyTreeNode parentNode = null;
                 object parentColor = DBNull.Value;
 
@@ -282,12 +303,12 @@ namespace Photo.org
 
                 Database.BeginTransaction();
 
-                Database.InsertCategory(id, parent, name);
+                Database.InsertCategory(id, parent, name, category.Color);
                 Database.InsertCategoryPath(id, id);
 
                 parentNode.Nodes.Add(id, name).Category = category;
 
-                while (parentNode.Parent.Category != null)
+                while (parentNode.Category != null)
                 {
                     Database.InsertCategoryPath(parentNode.Category.Id, id);
                     parentNode = parentNode.Parent;
@@ -296,53 +317,53 @@ namespace Photo.org
                 Database.Commit();
 
                 return id;
-            }
-            else
-            { 
-                TreeNode parentNode = null;
-                object parentColor = DBNull.Value;
+            //}
+            //else
+            //{ 
+            //    TreeNode parentNode = null;
+            //    object parentColor = DBNull.Value;
 
-                if (parent == Guid.Empty || parent == Guids.AllFiles)
-                {
-                    parent = Guid.Empty;
-                    parentNode = m_AllFilesNode;
-                }
-                else
-                {
-                    TreeNode[] tna = m_TreeView.Nodes.Find(parent.ToString(), true);
-                    if (tna.Length == 0)
-                        return Guid.Empty;
-                    parentNode = tna[0];
-                    parentColor = (long)(parentNode.Tag as Category).Color.ToArgb();
-                }
+            //    if (parent == Guid.Empty || parent == Guids.AllFiles)
+            //    {
+            //        parent = Guid.Empty;
+            //        parentNode = m_AllFilesNode;
+            //    }
+            //    else
+            //    {
+            //        TreeNode[] tna = m_TreeView.Nodes.Find(parent.ToString(), true);
+            //        if (tna.Length == 0)
+            //            return Guid.Empty;
+            //        parentNode = tna[0];
+            //        parentColor = (long)(parentNode.Tag as Category).Color.ToArgb();
+            //    }
 
-                Guid id = Guid.NewGuid();
-                Category category = new Category(id, parent, name, parentColor);
-                m_Categories.Add(id, category);
+            //    Guid id = Guid.NewGuid();
+            //    Category category = new Category(id, parent, name, parentColor);
+            //    m_Categories.Add(id, category);
 
-                Database.BeginTransaction();
+            //    Database.BeginTransaction();
 
-                Database.InsertCategory(id, parent, name);
-                Database.InsertCategoryPath(id, id);
+            //    Database.InsertCategory(id, parent, name);
+            //    Database.InsertCategoryPath(id, id);
 
-                parentNode.Nodes.Add(id.ToString(), name).Tag = category;
+            //    parentNode.Nodes.Add(id.ToString(), name).Tag = category;
 
-                while (parentNode.Parent != null)
-                {
-                    Database.InsertCategoryPath(new Guid(parentNode.Name), id);
-                    parentNode = parentNode.Parent;
-                }
+            //    while (parentNode.Parent != null)
+            //    {
+            //        Database.InsertCategoryPath(new Guid(parentNode.Name), id);
+            //        parentNode = parentNode.Parent;
+            //    }
 
-                Database.Commit();
+            //    Database.Commit();
 
-                return id;
-            }
+            //    return id;
+            //}
         }
 
         private static void AddToTreeView(Category category)
         {
-            if (m_UseNewTree)
-            {
+            //if (m_UseNewTree)
+            //{
                 MyTreeNode myNewNode = null;
 
                 if (category.ParentId == Guid.Empty)
@@ -358,25 +379,25 @@ namespace Photo.org
                     myNewNode = parent.Nodes.Add(category.Id, category.Label);
                 }
                 myNewNode.Category = category;
-            }
-//VANHAPUU
-            else
-            {
-                TreeNode newNode = null;
+//            }
+////VANHAPUU
+//            else
+//            {
+//                TreeNode newNode = null;
 
-                if (category.ParentId == Guid.Empty)
-                {
-                    newNode = m_AllFilesNode.Nodes.Add(category.Id.ToString(), category.Label);
-                }
-                else
-                {
-                    TreeNode[] tna = m_TreeView.Nodes.Find(category.ParentId.ToString(), true);
-                    if (tna.Length == 0)
-                        return;
-                    newNode = tna[0].Nodes.Add(category.Id.ToString(), category.Label);                 
-                }
-                newNode.Tag = category;
-            }            
+//                if (category.ParentId == Guid.Empty)
+//                {
+//                    newNode = m_AllFilesNode.Nodes.Add(category.Id.ToString(), category.Label);
+//                }
+//                else
+//                {
+//                    TreeNode[] tna = m_TreeView.Nodes.Find(category.ParentId.ToString(), true);
+//                    if (tna.Length == 0)
+//                        return;
+//                    newNode = tna[0].Nodes.Add(category.Id.ToString(), category.Label);                 
+//                }
+//                newNode.Tag = category;
+//            }            
 
             foreach (Category c in m_Categories.Values)
                 if (c.ParentId == category.Id)
@@ -437,21 +458,21 @@ namespace Photo.org
         /// <param name="splitContainer">Splitcontainer to contain the treeview control</param>
         internal static void Initialize(Control.ControlCollection controlCollection)
         {
-            m_TreeView = new CustomTreeView();
-            m_TreeView.Dock = DockStyle.Fill;
-            m_TreeView.Font = new Font("Tahoma", 12);
-            m_TreeView.ShowRootLines = false;
-            m_TreeView.AllowDrop = true;
-            m_TreeView.LabelEdit = false;
+            //m_TreeView = new CustomTreeView();
+            //m_TreeView.Dock = DockStyle.Fill;
+            //m_TreeView.Font = new Font("Tahoma", 12);
+            //m_TreeView.ShowRootLines = false;
+            //m_TreeView.AllowDrop = true;
+            //m_TreeView.LabelEdit = false;
 
-            m_TreeView.MouseDown += new MouseEventHandler(m_TreeView_MouseDown);
-            m_TreeView.MouseMove += new MouseEventHandler(m_TreeView_MouseMove);
-            m_TreeView.NodeSelectionChanged += new CustomTreeView.NodeSelectionChangedDelegate(m_TreeView_NodeSelectionChanged);
-            m_TreeView.DragEnter += new DragEventHandler(m_TreeView_DragEnter);
-            m_TreeView.DragDrop += new DragEventHandler(m_TreeView_DragDrop);
-            m_TreeView.AfterLabelEdit += new NodeLabelEditEventHandler(m_TreeView_AfterLabelEdit);
-            m_TreeView.BeforeCollapse += new TreeViewCancelEventHandler(m_TreeView_BeforeCollapse);
-            m_TreeView.MouseWheelOutsideControl += new CustomTreeView.MouseWheelOutsideControlDelegate(m_TreeView_MouseWheelOutsideControl);            
+            //m_TreeView.MouseDown += new MouseEventHandler(m_TreeView_MouseDown);
+            //m_TreeView.MouseMove += new MouseEventHandler(m_TreeView_MouseMove);
+            //m_TreeView.NodeSelectionChanged += new CustomTreeView.NodeSelectionChangedDelegate(m_TreeView_NodeSelectionChanged);
+            //m_TreeView.DragEnter += new DragEventHandler(m_TreeView_DragEnter);
+            //m_TreeView.DragDrop += new DragEventHandler(m_TreeView_DragDrop);
+            //m_TreeView.AfterLabelEdit += new NodeLabelEditEventHandler(m_TreeView_AfterLabelEdit);
+            //m_TreeView.BeforeCollapse += new TreeViewCancelEventHandler(m_TreeView_BeforeCollapse);
+            //m_TreeView.MouseWheelOutsideControl += new CustomTreeView.MouseWheelOutsideControlDelegate(m_TreeView_MouseWheelOutsideControl);            
 
             m_MyTreeView = new MyTreeView();
             m_MyTreeView.Dock = DockStyle.Fill;
@@ -466,10 +487,10 @@ namespace Photo.org
             m_MyTreeView.NodeDragEnter += m_MyTreeView_NodeDragEnter;
             m_MyTreeView.NodeDragDrop += m_MyTreeView_NodeDragDrop;
 
-            if (m_UseNewTree)
+            //if (m_UseNewTree)
                 controlCollection.Add(m_MyTreeView);
-            else
-                controlCollection.Add(m_TreeView);
+            //else
+            //    controlCollection.Add(m_TreeView);
         }
 
         static void m_MyTreeView_MouseMove(object sender, MouseEventArgs e)
@@ -592,8 +613,8 @@ namespace Photo.org
                 m_Categories.Add((Guid)dr["CATEGORY_ID"], new Category((Guid)dr["CATEGORY_ID"], (Guid)dr["PARENT_ID"], dr["NAME"].ToString(), dr["COLOR"]));
             }
 
-            m_UnassignedNode = m_TreeView.Nodes.Add(Guids.Unassigned.ToString(), Multilingual.GetText("categories", "unassigned", "Unassigned"));
-            m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allItems", "All items"));
+            //m_UnassignedNode = m_TreeView.Nodes.Add(Guids.Unassigned.ToString(), Multilingual.GetText("categories", "unassigned", "Unassigned"));
+            //m_AllFilesNode = m_TreeView.Nodes.Add(Guids.AllFiles.ToString(), Multilingual.GetText("categories", "allItems", "All items"));
 
             m_MyUnassignedNode = m_MyTreeView.Nodes.Add(Guids.Unassigned, Multilingual.GetText("categories", "unassigned", "Unassigned"));
             m_MyAllFilesNode = m_MyTreeView.Nodes.Add(Guids.AllFiles, Multilingual.GetText("categories", "allItems", "All items"));
@@ -602,7 +623,7 @@ namespace Photo.org
                 if (category.ParentId == Guid.Empty && category.Id != Guids.AllFiles && category.Id != Guids.Unassigned)
                     AddToTreeView(category);
 
-            m_AllFilesNode.Expand();
+            //m_AllFilesNode.Expand();
             m_MyAllFilesNode.Expand();
             
             m_MyTreeView.RefreshOrWhatever();
@@ -612,17 +633,17 @@ namespace Photo.org
 
 #region events
 
-        static void m_TreeView_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (Status.ReadOnly)
-                return;
+        //static void m_TreeView_MouseMove(object sender, MouseEventArgs e)
+        //{
+        //    if (Status.ReadOnly)
+        //        return;
 
-            if (Common.IsShiftPressed() && e.Button == MouseButtons.Left)
-            {
-                TreeNode tn = m_TreeView.GetNodeAt(e.Location);
-                m_TreeView.DoDragDrop(tn, DragDropEffects.Link);
-            }
-        }
+        //    if (Common.IsShiftPressed() && e.Button == MouseButtons.Left)
+        //    {
+        //        TreeNode tn = m_TreeView.GetNodeAt(e.Location);
+        //        m_TreeView.DoDragDrop(tn, DragDropEffects.Link);
+        //    }
+        //}
 
         static void m_MyTreeView_NodeMouseDown(MyTreeNode node, MouseEventArgs e)
         {
@@ -633,87 +654,87 @@ namespace Photo.org
                 ShowContextMenu(e.Location, node);
         }
 
-//VANHAPUU
-        static void m_TreeView_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (Status.Busy)
-                return;
+////VANHAPUU
+//        static void m_TreeView_MouseDown(object sender, MouseEventArgs e)
+//        {
+//            if (Status.Busy)
+//                return;
 
-            Point point = new Point(e.X, e.Y);
-            TreeNode tn = m_TreeView.GetNodeAt(point);
+//            Point point = new Point(e.X, e.Y);
+//            TreeNode tn = m_TreeView.GetNodeAt(point);
 
-            if (e.Button == MouseButtons.Right)
-                ShowContextMenu(point, tn);
-        }
+//            if (e.Button == MouseButtons.Right)
+//                ShowContextMenu(point, tn);
+//        }
 
-        static void m_TreeView_DragDrop(object sender, DragEventArgs e)
-        {
-            if (Status.ReadOnly)
-                return;
+        //static void m_TreeView_DragDrop(object sender, DragEventArgs e)
+        //{
+        //    if (Status.ReadOnly)
+        //        return;
 
-            if (Status.Busy)
-                return;
+        //    if (Status.Busy)
+        //        return;
 
-            Point point = new Point(e.X, e.Y);
-            point = m_TreeView.PointToClient(point);
-            TreeNode tn = m_TreeView.GetNodeAt(point);
+        //    Point point = new Point(e.X, e.Y);
+        //    point = m_TreeView.PointToClient(point);
+        //    TreeNode tn = m_TreeView.GetNodeAt(point);
 
-            if (tn == null)
-                return;
+        //    if (tn == null)
+        //        return;
 
-            Guid categoryId = new Guid(tn.Name);            
+        //    Guid categoryId = new Guid(tn.Name);            
 
-            if (e.Data.GetDataPresent(typeof(List<Photo>)))
-            {
-                if (categoryId == Guids.AllFiles || categoryId == Guids.Unassigned)
-                    return;
+        //    if (e.Data.GetDataPresent(typeof(List<Photo>)))
+        //    {
+        //        if (categoryId == Guids.AllFiles || categoryId == Guids.Unassigned)
+        //            return;
 
-                List<Photo> photos = (List<Photo>)e.Data.GetData(typeof(List<Photo>));
+        //        List<Photo> photos = (List<Photo>)e.Data.GetData(typeof(List<Photo>));
 
-                SetPhotoCategory(photos, categoryId, ((e.KeyState & KeyStates.Shift) == KeyStates.Shift));                
-            }
-            else if (e.Data.GetDataPresent(typeof(TreeNode)))
-            {
-                if (categoryId == Guids.Unassigned)
-                    return;                
+        //        SetPhotoCategory(photos, categoryId, ((e.KeyState & KeyStates.Shift) == KeyStates.Shift));                
+        //    }
+        //    else if (e.Data.GetDataPresent(typeof(TreeNode)))
+        //    {
+        //        if (categoryId == Guids.Unassigned)
+        //            return;                
 
-                TreeNode movingNode = (TreeNode)e.Data.GetData(typeof(TreeNode));
-                Category movingCategory = (Category)movingNode.Tag;
+        //        TreeNode movingNode = (TreeNode)e.Data.GetData(typeof(TreeNode));
+        //        Category movingCategory = (Category)movingNode.Tag;
 
-                if (movingNode == tn || movingNode.Parent == tn)
-                    return;
+        //        if (movingNode == tn || movingNode.Parent == tn)
+        //            return;
 
-                if (MessageBox.Show("Do you want to move category " + movingCategory.Name + " under category " + tn.Text + "?", "", MessageBoxButtons.YesNo) == DialogResult.No)
-                    return;
+        //        if (MessageBox.Show("Do you want to move category " + movingCategory.Name + " under category " + tn.Text + "?", "", MessageBoxButtons.YesNo) == DialogResult.No)
+        //            return;
 
-                Database.BeginTransaction();
+        //        Database.BeginTransaction();
 
-                RemoveCategoryPathFromBranch(movingNode);
+        //        RemoveCategoryPathFromBranch(movingNode);
 
-                m_TreeView.Nodes.Remove(movingNode);
-                tn.Nodes.Add(movingNode);
+        //        m_TreeView.Nodes.Remove(movingNode);
+        //        tn.Nodes.Add(movingNode);
 
-                CreateCategoryPathForBrach(movingNode);
+        //        CreateCategoryPathForBrach(movingNode);
 
-                if (categoryId == Guids.AllFiles)
-                    categoryId = Guid.Empty;
+        //        if (categoryId == Guids.AllFiles)
+        //            categoryId = Guid.Empty;
 
-                Database.UpdateCategory(movingCategory.Id, categoryId, movingCategory.Name);
+        //        Database.UpdateCategory(movingCategory.Id, categoryId, movingCategory.Name);
 
-                Database.Commit();
-            }
-        }
+        //        Database.Commit();
+        //    }
+        //}
 
-        static void m_TreeView_DragEnter(object sender, DragEventArgs e)
-        {
-            e.Effect = DragDropEffects.Link;
-        }
+        //static void m_TreeView_DragEnter(object sender, DragEventArgs e)
+        //{
+        //    e.Effect = DragDropEffects.Link;
+        //}
 
-        static void m_TreeView_BeforeCollapse(object sender, TreeViewCancelEventArgs e)
-        {
-            if (e.Node == m_AllFilesNode)
-                e.Cancel = true;
-        }
+        //static void m_TreeView_BeforeCollapse(object sender, TreeViewCancelEventArgs e)
+        //{
+        //    if (e.Node == m_AllFilesNode)
+        //        e.Cancel = true;
+        //}
 
         static void m_MyTreeView_NodeSelectionChanged()
         {
@@ -723,32 +744,32 @@ namespace Photo.org
                 FetchPhotos();
         }
 
-        static void m_TreeView_NodeSelectionChanged(object sender, EventArgs e)
-        {
-            if (Status.Busy)
-                Thumbnails.ClearPhotos();
-            else
-                FetchPhotos();
-        }
+        //static void m_TreeView_NodeSelectionChanged(object sender, EventArgs e)
+        //{
+        //    if (Status.Busy)
+        //        Thumbnails.ClearPhotos();
+        //    else
+        //        FetchPhotos();
+        //}
 
-        static void m_TreeView_AfterLabelEdit(object sender, NodeLabelEditEventArgs e)
-        {
-            if (e.Label == null)
-            {
-                e.CancelEdit = true;
-                return;
-            }
+        //static void m_TreeView_AfterLabelEdit(object sender, NodeLabelEditEventArgs e)
+        //{
+        //    if (e.Label == null)
+        //    {
+        //        e.CancelEdit = true;
+        //        return;
+        //    }
 
-            Status.Busy = true;
+        //    Status.Busy = true;
 
-            Category category = m_Categories[new Guid(e.Node.Name)];
-            category.Name = (e.Label);
-            Database.UpdateCategory(category.Id, category.ParentId, category.Name);
-            m_TreeView.LabelEdit = false;
+        //    Category category = m_Categories[new Guid(e.Node.Name)];
+        //    category.Name = (e.Label);
+        //    Database.UpdateCategory(category.Id, category.ParentId, category.Name);
+        //    m_TreeView.LabelEdit = false;
 
-            Status.Busy = false;
-            Status.LabelEdit = false;
-        }
+        //    Status.Busy = false;
+        //    Status.LabelEdit = false;
+        //}
 
 #endregion        
 
@@ -893,108 +914,108 @@ namespace Photo.org
             menu.Show(m_MyTreeView, location);
         }
 
-        private static void ShowContextMenu(Point location, TreeNode targetNode)
-        {
-            if (targetNode == null)
-                return;
+        //private static void ShowContextMenu(Point location, TreeNode targetNode)
+        //{
+        //    if (targetNode == null)
+        //        return;
 
-            ContextMenu menu = new ContextMenu();
-            MenuItem mi = null;
+        //    ContextMenu menu = new ContextMenu();
+        //    MenuItem mi = null;
 
-            bool properTargetNode = (targetNode != null && targetNode != m_AllFilesNode && targetNode != m_UnassignedNode);
+        //    bool properTargetNode = (targetNode != null && targetNode != m_AllFilesNode && targetNode != m_UnassignedNode);
 
-            bool needSeparator = false;
+        //    bool needSeparator = false;
 
-            if (m_TreeView.SelectedNodes.Count != 0 && properTargetNode && !m_TreeView.SelectedNodes.Contains(targetNode))
-            {
-                mi = new MenuItem();
-                mi.Text = "Hide from results";
-                mi.Name = "HideFromResults";
-                mi.Click += new EventHandler(contextMenuItem_Click);
-                menu.MenuItems.Add(mi);
+        //    if (m_TreeView.SelectedNodes.Count != 0 && properTargetNode && !m_TreeView.SelectedNodes.Contains(targetNode))
+        //    {
+        //        mi = new MenuItem();
+        //        mi.Text = "Hide from results";
+        //        mi.Name = "HideFromResults";
+        //        mi.Click += new EventHandler(contextMenuItem_Click);
+        //        menu.MenuItems.Add(mi);
 
-                needSeparator = true;
-            }
+        //        needSeparator = true;
+        //    }
 
-            if (targetNode.Nodes.Count != 0)
-            {
-                mi = new MenuItem();
-                mi.Text = "Hide children from results";
-                mi.Name = "HideChildrenFromResults";
-                mi.Click += new EventHandler(contextMenuItem_Click);
-                menu.MenuItems.Add(mi);
+        //    if (targetNode.Nodes.Count != 0)
+        //    {
+        //        mi = new MenuItem();
+        //        mi.Text = "Hide children from results";
+        //        mi.Name = "HideChildrenFromResults";
+        //        mi.Click += new EventHandler(contextMenuItem_Click);
+        //        menu.MenuItems.Add(mi);
 
-                needSeparator = true;
-            }
+        //        needSeparator = true;
+        //    }
 
-            if (!Status.ReadOnly)
-            {
-                if (needSeparator)
-                    menu.MenuItems.Add("-");
+        //    if (!Status.ReadOnly)
+        //    {
+        //        if (needSeparator)
+        //            menu.MenuItems.Add("-");
 
-                mi = new MenuItem();
-                mi.Text = "New category";
-                mi.Name = "NewCategory";
-                mi.Click += new EventHandler(contextMenuItem_Click);
-                menu.MenuItems.Add(mi);
+        //        mi = new MenuItem();
+        //        mi.Text = "New category";
+        //        mi.Name = "NewCategory";
+        //        mi.Click += new EventHandler(contextMenuItem_Click);
+        //        menu.MenuItems.Add(mi);
 
-                if (properTargetNode)
-                {
-                    mi = new MenuItem();
-                    mi.Text = "New category as child";
-                    mi.Name = "NewChildCategory";
-                    mi.Click += new EventHandler(contextMenuItem_Click);
-                    menu.MenuItems.Add(mi);
+        //        if (properTargetNode)
+        //        {
+        //            mi = new MenuItem();
+        //            mi.Text = "New category as child";
+        //            mi.Name = "NewChildCategory";
+        //            mi.Click += new EventHandler(contextMenuItem_Click);
+        //            menu.MenuItems.Add(mi);
 
-                    menu.MenuItems.Add("-");
+        //            menu.MenuItems.Add("-");
 
-                    mi = new MenuItem();
-                    mi.Text = "Rename category";
-                    mi.Name = "RenameCategory";
-                    mi.Click += new EventHandler(contextMenuItem_Click);
-                    menu.MenuItems.Add(mi);
+        //            mi = new MenuItem();
+        //            mi.Text = "Rename category";
+        //            mi.Name = "RenameCategory";
+        //            mi.Click += new EventHandler(contextMenuItem_Click);
+        //            menu.MenuItems.Add(mi);
 
-                    mi = new MenuItem();
-                    mi.Text = "Delete category";
-                    mi.Name = "DeleteCategory";
-                    mi.Click += new EventHandler(contextMenuItem_Click);
-                    menu.MenuItems.Add(mi);
+        //            mi = new MenuItem();
+        //            mi.Text = "Delete category";
+        //            mi.Name = "DeleteCategory";
+        //            mi.Click += new EventHandler(contextMenuItem_Click);
+        //            menu.MenuItems.Add(mi);
 
-                    if (m_TreeView.SelectedNodes.Count == 1)
-                    {
-                        menu.MenuItems.Add("-");
+        //            if (m_TreeView.SelectedNodes.Count == 1)
+        //            {
+        //                menu.MenuItems.Add("-");
 
-                        if (m_TreeView.SelectedNodes.Contains(targetNode))
-                        {
-                            mi = new MenuItem();
-                            mi.Text = "Auto categories";
-                            mi.Name = "AutoCategories";
-                            //mi.Click += new EventHandler(contextMenuItem_Click);
-                            menu.MenuItems.Add(mi);
-                        }
-                        else
-                        {                            
-                            mi = new MenuItem();
-                            mi.Text = "Add auto category";
-                            mi.Name = "AddAutoCategory";
-                            mi.Click += new EventHandler(contextMenuItem_Click);
-                            menu.MenuItems.Add(mi);
-                        }
-                    }
+        //                if (m_TreeView.SelectedNodes.Contains(targetNode))
+        //                {
+        //                    mi = new MenuItem();
+        //                    mi.Text = "Auto categories";
+        //                    mi.Name = "AutoCategories";
+        //                    //mi.Click += new EventHandler(contextMenuItem_Click);
+        //                    menu.MenuItems.Add(mi);
+        //                }
+        //                else
+        //                {                            
+        //                    mi = new MenuItem();
+        //                    mi.Text = "Add auto category";
+        //                    mi.Name = "AddAutoCategory";
+        //                    mi.Click += new EventHandler(contextMenuItem_Click);
+        //                    menu.MenuItems.Add(mi);
+        //                }
+        //            }
 
-                    menu.MenuItems.Add("-");
+        //            menu.MenuItems.Add("-");
 
-                    mi = new MenuItem();
-                    mi.Text = "Set category color";
-                    mi.Name = "SetCategoryColor";
-                    mi.Click += new EventHandler(contextMenuItem_Click);
-                    menu.MenuItems.Add(mi);
-                }
-            }
+        //            mi = new MenuItem();
+        //            mi.Text = "Set category color";
+        //            mi.Name = "SetCategoryColor";
+        //            mi.Click += new EventHandler(contextMenuItem_Click);
+        //            menu.MenuItems.Add(mi);
+        //        }
+        //    }
 
-            m_MenuTargetNode = targetNode;
-            menu.Show(m_TreeView, location);
-        }
+        //    m_MenuTargetNode = targetNode;
+        //    menu.Show(m_TreeView, location);
+        //}
 
         private static void EditCategoryLabel(MyTreeNode treeNode)
         {
@@ -1002,20 +1023,20 @@ namespace Photo.org
             Status.LabelEdit = true;
         }
 
-        private static void EditCategoryLabel(TreeNode treeNode)
-        {
-            treeNode.Text = (treeNode.Tag as Category).Name;
-            m_TreeView.LabelEdit = true;
-            Status.LabelEdit = true;
-            treeNode.BeginEdit();
-        }
+        //private static void EditCategoryLabel(TreeNode treeNode)
+        //{
+        //    treeNode.Text = (treeNode.Tag as Category).Name;
+        //    m_TreeView.LabelEdit = true;
+        //    Status.LabelEdit = true;
+        //    treeNode.BeginEdit();
+        //}
 
         static void contextMenuItem_Click(object sender, EventArgs e)
         {
             Guid newNodeGuid = Guid.Empty;
 
-            if (m_UseNewTree)
-            {
+            //if (m_UseNewTree)
+            //{
                 switch ((sender as MenuItem).Name)
                 {
                     case "HideFromResults":
@@ -1035,7 +1056,7 @@ namespace Photo.org
                         Status.Busy = false;
                         break;
                     case "NewCategory":
-                        if (m_MyMenuTargetNode == null || m_MyMenuTargetNode.Parent == null)
+                        if (m_MyMenuTargetNode == null || m_MyMenuTargetNode.Parent == null || m_MyMenuTargetNode.Parent.Category == null)
                             newNodeGuid = AddCategory("New Category", Guid.Empty);
                         else
                             newNodeGuid = AddCategory("New Category", m_MyMenuTargetNode.Parent.Category.Id);
@@ -1067,53 +1088,53 @@ namespace Photo.org
 
                 if (newNodeGuid != Guid.Empty)
                     EditCategoryLabel(m_MyTreeView.FindNode(newNodeGuid));
-            }
-            else
-            { 
-                switch ((sender as MenuItem).Name)
-                { 
-                    case "HideFromResults":
-                        Status.Busy = true;
-                        Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MenuTargetNode), Guid.Empty);
-                        Status.Busy = false;
-                        break;
-                    case "HideChildrenFromResults":
-                        Status.Busy = true;
-                        Color color = m_MenuTargetNode.BackColor;
-                        List<Category> categories = OnHideNodeFromResults(m_MenuTargetNode);
-                        categories.Remove((Category)m_MenuTargetNode.Tag);
-                        m_MenuTargetNode.BackColor = color;
-                        Thumbnails.HideCategoriesFromResults(categories, (m_TreeView.SelectedNodes.Contains(m_MenuTargetNode) ? (m_MenuTargetNode.Tag as Category).Id : Guid.Empty));
-                        Status.Busy = false;
-                        break;
-                    case "NewCategory":
-                        if (m_MenuTargetNode == null || m_MenuTargetNode.Parent == null)
-                            newNodeGuid = AddCategory("New Category", Guid.Empty);
-                        else
-                            newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Parent.Name));                        
-                        break;
-                    case "NewChildCategory":
-                        newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Name));                    
-                        m_MenuTargetNode.Expand();
-                        break;
-                    case "RenameCategory":
-                        EditCategoryLabel(m_MenuTargetNode);
-                        break;
-                    case "DeleteCategory":
-                        DeleteCategoryByNodeExt(m_MenuTargetNode);
-                        Thumbnails.ClearPhotos();
-                        break;
-                    case "AddAutoCategory":
-                        AddAutoCategory(m_MenuTargetNode.Tag as Category);
-                        break;
-                    case "SetCategoryColor":
-                        SetCategoryColor(m_MenuTargetNode);                    
-                        break;
-                }
+            //}
+            //else
+            //{ 
+            //    switch ((sender as MenuItem).Name)
+            //    { 
+            //        case "HideFromResults":
+            //            Status.Busy = true;
+            //            Thumbnails.HideCategoriesFromResults(OnHideNodeFromResults(m_MenuTargetNode), Guid.Empty);
+            //            Status.Busy = false;
+            //            break;
+            //        case "HideChildrenFromResults":
+            //            Status.Busy = true;
+            //            Color color = m_MenuTargetNode.BackColor;
+            //            List<Category> categories = OnHideNodeFromResults(m_MenuTargetNode);
+            //            categories.Remove((Category)m_MenuTargetNode.Tag);
+            //            m_MenuTargetNode.BackColor = color;
+            //            Thumbnails.HideCategoriesFromResults(categories, (m_TreeView.SelectedNodes.Contains(m_MenuTargetNode) ? (m_MenuTargetNode.Tag as Category).Id : Guid.Empty));
+            //            Status.Busy = false;
+            //            break;
+            //        case "NewCategory":
+            //            if (m_MenuTargetNode == null || m_MenuTargetNode.Parent == null)
+            //                newNodeGuid = AddCategory("New Category", Guid.Empty);
+            //            else
+            //                newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Parent.Name));                        
+            //            break;
+            //        case "NewChildCategory":
+            //            newNodeGuid = AddCategory("New Category", new Guid(m_MenuTargetNode.Name));                    
+            //            m_MenuTargetNode.Expand();
+            //            break;
+            //        case "RenameCategory":
+            //            EditCategoryLabel(m_MenuTargetNode);
+            //            break;
+            //        case "DeleteCategory":
+            //            DeleteCategoryByNodeExt(m_MenuTargetNode);
+            //            Thumbnails.ClearPhotos();
+            //            break;
+            //        case "AddAutoCategory":
+            //            AddAutoCategory(m_MenuTargetNode.Tag as Category);
+            //            break;
+            //        case "SetCategoryColor":
+            //            SetCategoryColor(m_MenuTargetNode);                    
+            //            break;
+            //    }
 
-                if (newNodeGuid != Guid.Empty)
-                    EditCategoryLabel(m_TreeView.Nodes.Find(newNodeGuid.ToString(), true)[0]);
-            }
+            //    if (newNodeGuid != Guid.Empty)
+            //        EditCategoryLabel(m_TreeView.Nodes.Find(newNodeGuid.ToString(), true)[0]);
+            //}
         }
 
         private static void SetCategoryColor(MyTreeNode tn)
@@ -1174,16 +1195,18 @@ namespace Photo.org
 
         private static void AddAutoCategory(Category category)
         {
-            if (m_TreeView.SelectedNodes.Count != 1)
-                return;
+            throw new NotImplementedException();
 
-            Category source = (Category)m_TreeView.SelectedNodes[0].Tag;
+            //if (m_TreeView.SelectedNodes.Count != 1)
+            //    return;
 
-            if (MessageBox.Show("Add " + category.Name + " as auto category for " + source.Name + "?", "Add auto category", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-                return;
+            //Category source = (Category)m_TreeView.SelectedNodes[0].Tag;
 
-            Database.InsertAutoCategory(source.Id, category.Id);
-            Database.ApplyAutoCategories(source.Id);
+            //if (MessageBox.Show("Add " + category.Name + " as auto category for " + source.Name + "?", "Add auto category", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            //    return;
+
+            //Database.InsertAutoCategory(source.Id, category.Id);
+            //Database.ApplyAutoCategories(source.Id);
         }
 
         private static void DeleteCategoryByNode(TreeNode treeNode)
@@ -1224,36 +1247,36 @@ namespace Photo.org
             m_MyTreeView.RefreshOrWhatever();
         }
 
-        //TODO: tyhmä nimi
-        private static void DeleteCategoryByNodeExt(TreeNode treeNode)
-        {
-            if (MessageBox.Show("Delete category " + treeNode.Text + "?", "Delete category", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
-                return;
+        ////TODO: tyhmä nimi
+        //private static void DeleteCategoryByNodeExt(TreeNode treeNode)
+        //{
+        //    if (MessageBox.Show("Delete category " + treeNode.Text + "?", "Delete category", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+        //        return;
 
-            Status.ShowProgress();
-            Database.BeginTransaction();
+        //    Status.ShowProgress();
+        //    Database.BeginTransaction();
 
-            DeleteCategoryByNode(treeNode);
-            m_TreeView.RemoveNode(treeNode);
+        //    DeleteCategoryByNode(treeNode);
+        //    m_TreeView.RemoveNode(treeNode);
 
-            Database.Commit();
-            Status.HideProgress();
-        }
+        //    Database.Commit();
+        //    Status.HideProgress();
+        //}
 
 #endregion                
     
         internal static void TakeFocus()
         {
-            if (m_UseNewTree)
+            //if (m_UseNewTree)
                 m_MyTreeView.Focus();
-            else
-                m_TreeView.Focus();
+            //else
+            //    m_TreeView.Focus();
         }
 
         internal static void LocateCategory(Guid guid)
         {
-            if (!m_UseNewTree)
-                return;
+            //if (!m_UseNewTree)
+            //    return;
 
             m_MyTreeView.HighlightNode(guid);
         }

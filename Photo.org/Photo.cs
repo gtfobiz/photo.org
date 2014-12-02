@@ -20,6 +20,7 @@ namespace Photo.org
         private long m_Width = 0;        
         private long m_Height = 0;        
         private DateTime m_ImportDate = DateTime.MinValue;
+        private bool m_IsVideo = false;
 
         private List<Guid> m_Categories = null;
         private List<Guid> m_AutoCategories = null;
@@ -31,6 +32,7 @@ namespace Photo.org
         }
 
         private bool m_Busy = false;
+//        private string file;
 
         public Image LoadImage()
         {
@@ -60,6 +62,59 @@ namespace Photo.org
             return CreateThumbnail(null);
         }
 
+        public Image CreateThumbnailFromVideo()
+        {
+            string thumbnail = Database.ThumbnailPath + @"\" + m_Id.ToString();
+            string size = Thumbnails.ThumbnailSize.ToString() + "x" + Thumbnails.ThumbnailSize.ToString();
+            string cmd = "ffmpeg  -itsoffset -1  -i " + '"' + this.FilenameWithPath + '"' + " -vcodec mjpeg -vframes 1 -an -f rawvideo -s " + size + " " + '"' + thumbnail + '"';
+
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                FileName = "cmd.exe",
+                Arguments = "/C " + cmd
+            };
+
+            System.Diagnostics.Process process = new System.Diagnostics.Process
+            {
+                StartInfo = startInfo
+            };
+
+            process.Start();
+            process.WaitForExit(5000);
+
+            var ms = new MemoryStream(File.ReadAllBytes(thumbnail));
+            return Image.FromStream(ms);
+        }        
+
+        //public static Bitmap GetThumbnail(string video, string thumbnail)
+        //{
+        //    var cmd = "ffmpeg  -itsoffset -1  -i " + '"' + video + '"' + " -vcodec mjpeg -vframes 1 -an -f rawvideo -s 320x240 " + '"' + thumbnail + '"';
+
+        //    var startInfo = new ProcessStartInfo
+        //    {
+        //        WindowStyle = ProcessWindowStyle.Hidden,
+        //        FileName = "cmd.exe",
+        //        Arguments = "/C " + cmd
+        //    };
+
+        //    var process = new Process
+        //    {
+        //        StartInfo = startInfo
+        //    };
+
+        //    process.Start();
+        //    process.WaitForExit(5000);
+
+        //    return LoadImage(thumbnail);
+        //}
+
+        //static Bitmap LoadImage(string path)
+        //{
+        //    var ms = new MemoryStream(File.ReadAllBytes(path));
+        //    return (Bitmap)Image.FromStream(ms);
+        //}
+
         internal Image CreateThumbnail(Image image)
         {
             if (m_Busy)
@@ -81,7 +136,13 @@ namespace Photo.org
                 return null;
 
             //new Bitmap(thumbnail).Save(Database.ThumbnailPath + @"\" + m_Id.ToString(), ImageFormat.Jpeg);
-            thumbnail.Save(Database.ThumbnailPath + @"\" + m_Id.ToString(), ImageFormat.Jpeg);
+            try
+            {
+                thumbnail.Save(Database.ThumbnailPath + @"\" + m_Id.ToString(), ImageFormat.Jpeg);
+            }
+            catch
+            { 
+            }
 
             m_Busy = false;
 
@@ -96,24 +157,31 @@ namespace Photo.org
 
         internal Photo(string filename)
         {            
-            Image image = Image.FromFile(filename);
-            //string hash = Core.GetMD5Hash(File.ReadAllText(filename));
-            m_Hash = Common.GetMD5HashForImage(image);
-            if (m_Hash == null)
-                return;
+            FileInfo fi = new FileInfo(filename);
+            string extension = fi.Extension.ToLower();
+            this.IsVideo = (extension == ".avi" || extension == ".mpg" || extension == ".mpeg" || extension == ".mp4");
 
             m_Id = Guid.NewGuid();
-
-            m_Width = (long)image.PhysicalDimension.Width;
-            m_Height = (long)image.PhysicalDimension.Height;
-            FileInfo fi = new FileInfo(filename);
             m_Filename = fi.Name;
             m_Path = fi.DirectoryName.ToLower();
             m_FileSize = fi.Length;
 
-            CreateThumbnail(image);
-            image.Dispose();
-            image = null;
+            if (!this.IsVideo)            
+            {
+                Image image = Image.FromFile(filename);
+                //string hash = Core.GetMD5Hash(File.ReadAllText(filename));
+                m_Hash = Common.GetMD5HashForImage(image);
+                if (m_Hash == null)
+                    return;
+
+                m_Width = (long)image.PhysicalDimension.Width;
+                m_Height = (long)image.PhysicalDimension.Height;
+                //FileInfo fi = new FileInfo(filename);
+                
+                CreateThumbnail(image);
+                image.Dispose();
+                image = null;
+            }
         }
 
         /// <summary>
@@ -175,7 +243,15 @@ namespace Photo.org
             if (!File.Exists(Database.ThumbnailPath + @"\" + m_Id.ToString()))
                 return null;
 
-            Image image = Image.FromFile(Database.ThumbnailPath + @"\" + m_Id.ToString());
+            Image image = null;
+            try
+            {
+                image = Image.FromFile(Database.ThumbnailPath + @"\" + m_Id.ToString());
+            }
+            catch
+            {
+                return null; // tämmöne!!
+            }
 
             if (image.Width != Thumbnails.ThumbnailSize)
             {
@@ -209,6 +285,12 @@ namespace Photo.org
         }
 
 #region properties
+
+        public bool IsVideo
+        {
+            get { return m_IsVideo; }
+            set { m_IsVideo = value; }
+        }
 
         public long Width
         {

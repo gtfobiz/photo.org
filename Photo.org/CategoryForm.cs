@@ -45,15 +45,18 @@ namespace Photo.org
             }
         }        
 
-        private void RefreshCategories()
+        private bool RefreshCategories()
         {
-            lstCategories.BeginUpdate();
+            bool found = false;
 
-            lstCategories.Items.Clear();
-            m_ListedCategories.Clear();
+            lstCategories.BeginUpdate();            
 
             if (m_SearchString == "")
             {
+                found = true;
+                lstCategories.Items.Clear();
+                m_ListedCategories.Clear();
+
                 if (m_CategoryDialogMode == CategoryDialogMode.Default)
                 {
                     this.Text = "Recent categories";
@@ -69,23 +72,33 @@ namespace Photo.org
                 }
             }
             else
-            {
-                this.Text = (Settings.CategoryFormSearchFromBegin ? "Categories starting with " + m_SearchString : "Categories containing " + m_SearchString);
+            {                                
                 foreach (KeyValuePair<string, Category> pair in m_AllCategories)
                 {
                     string name = pair.Value.Name.ToLower();
                     if ((Settings.CategoryFormSearchFromBegin && name.StartsWith(m_SearchString)) || (!Settings.CategoryFormSearchFromBegin && name.Contains(m_SearchString)))
                     {
+                        if (!found)
+                        {
+                            found = true;
+                            this.Text = (Settings.CategoryFormSearchFromBegin ? "Categories starting with " + m_SearchString : "Categories containing " + m_SearchString);
+
+                            lstCategories.Items.Clear();
+                            m_ListedCategories.Clear();
+                        }
+
                         m_ListedCategories.Add(pair.Value.Id);
                         lstCategories.Items.Add(pair.Value.Name);
                     }
-                }
+                }                
             }
 
             lstCategories.EndUpdate();
 
             if (lstCategories.Items.Count > 0)
                 lstCategories.SelectedIndex = 0;
+
+            return found;
         }
 
         public CategoryForm()
@@ -109,19 +122,22 @@ namespace Photo.org
 
         private void lstCategories_Click(object sender, EventArgs e)
         {
-            if (lstCategories.SelectedIndex >= 0)
-                SetCurrentCategoryAsSelected();
+            //if (lstCategories.SelectedIndex >= 0)
+            //    SetCurrentCategoryAsSelected();
         }
 
         private void SetCurrentCategoryAsSelected()
         {
             try
             {
-                int last = lstCategories.SelectedIndex;
-                int first = (m_CategoryDialogMode == org.CategoryDialogMode.Default && Common.IsShiftPressed() ? 0 : last);
-
-                for (int i=first; i<=last; i++)
+                foreach (int i in lstCategories.SelectedIndices)
                     SelectedCategories.Add(m_ListedCategories[i]);
+
+                //int last = lstCategories.SelectedIndex;
+                //int first = (m_CategoryDialogMode == org.CategoryDialogMode.Default && Common.IsShiftPressed() ? 0 : last);
+
+                //for (int i=first; i<=last; i++)
+                //    SelectedCategories.Add(m_ListedCategories[i]);
 
                 this.Close();
             }
@@ -163,8 +179,10 @@ namespace Photo.org
 
             if (m_SearchString != searchString)
             {
-                lblStartsWith.Text = m_SearchString.Replace(' ', '_');
-                RefreshCategories();
+                if (RefreshCategories())
+                    lblStartsWith.Text = m_SearchString.Replace(' ', '_');
+                else
+                    m_SearchString = searchString;
             }
 
             e.Handled = true;

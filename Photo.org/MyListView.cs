@@ -205,7 +205,20 @@ namespace Photo.org
 
         private void EnsureSelectionVisible()
         {
-            //todo!
+            if (m_SelectedItems.Count != 1)
+                return;
+
+            Photo photo = m_SelectedItems[0];
+
+            int x = m_Photos.IndexOf(photo);
+
+            //if (x < m_FirstVisibleIndex)
+            //    m_VScrollBar.Value = 1;
+
+            //RefreshOrWhatever();
+            //m_FirstVisibleIndex
+            //m_VisibleColumns
+            //m_VisibleRows
         }
 
         private void MoveSelection(int columns, int rows)
@@ -297,103 +310,103 @@ namespace Photo.org
             if (m_Updating)
                 return;
 
-            CalculateScrollBarMaxValue();
+                CalculateScrollBarMaxValue();
 
-            Photo photo = null, prevPhoto = null;
-            MyListViewItemControl ctl = null;
+                Photo photo = null, prevPhoto = null;
+                MyListViewItemControl ctl = null;
 
-            int column = 0;
-            int row = 0;
-            int usedItems = 0;
-            int verticalOffset = 10;
+                int column = 0;
+                int row = 0;
+                int usedItems = 0;
+                int verticalOffset = 10;
 
-            MyListViewGroupBar groupBar = null;
-            while (m_GroupBarControls.Count > 0)            
-            {
-                groupBar = m_GroupBarControls[m_GroupBarControls.Count - 1];
-                this.Controls.Remove(groupBar);
-                m_GroupBarControls.Remove(groupBar);                
-            }
-            groupBar = null;                        
-
-            m_FirstVisibleIndex = m_VScrollBar.Value * m_VisibleColumns;
-            for (int i = m_FirstVisibleIndex; i < m_Photos.Count; i++)
-            {
-                if (usedItems < m_ItemControls.Count)
+                MyListViewGroupBar groupBar = null;
+                while (m_GroupBarControls.Count > 0)
                 {
-                    ctl = m_ItemControls[usedItems];
+                    groupBar = m_GroupBarControls[m_GroupBarControls.Count - 1];
+                    this.Controls.Remove(groupBar);
+                    m_GroupBarControls.Remove(groupBar);
                 }
-                else
+                groupBar = null;
+
+                m_FirstVisibleIndex = m_VScrollBar.Value * m_VisibleColumns;
+                for (int i = m_FirstVisibleIndex; i < m_Photos.Count; i++)
                 {
-                    ctl = new MyListViewItemControl();
-                    //ctl.OnMouseDown += new MyListViewItemControl.MouseDownHandler(ctl_OnMouseDown);
-                    //ctl.OnMouseUp += new MyListViewItemControl.MouseUpHandler(ctl_OnMouseUp);
-                    ctl.OnMouseEvent += new MyListViewItemControl.MouseEventsHandler(ctl_OnMouseEvent);
-                    m_ItemControls.Add(ctl);
-                    this.Controls.Add(ctl);
-                }
-
-                usedItems++;
-
-                photo = m_Photos[i];
-                prevPhoto = (i == 0 ? null : m_Photos[i - 1]);
-
-                groupBar = GetGroupBar(prevPhoto, photo);
-                if (groupBar != null)
-                {
-                    if (i != m_FirstVisibleIndex)
-                        verticalOffset += 30;
-
-                    if (column > 0)
+                    if (usedItems < m_ItemControls.Count)
                     {
-                        row++;
-                        column = 0;
+                        ctl = m_ItemControls[usedItems];
+                    }
+                    else
+                    {
+                        ctl = new MyListViewItemControl();
+                        //ctl.OnMouseDown += new MyListViewItemControl.MouseDownHandler(ctl_OnMouseDown);
+                        //ctl.OnMouseUp += new MyListViewItemControl.MouseUpHandler(ctl_OnMouseUp);
+                        ctl.OnMouseEvent += new MyListViewItemControl.MouseEventsHandler(ctl_OnMouseEvent);
+                        m_ItemControls.Add(ctl);
+                        this.Controls.Add(ctl);
                     }
 
-                    groupBar.Top = verticalOffset + row * (ItemControlHeigth + 10);
-                    groupBar.Width = this.ClientRectangle.Width;
-                    m_GroupBarControls.Add(groupBar);
-                    this.Controls.Add(groupBar);
-                    verticalOffset += groupBar.Height + 5;                   
+                    usedItems++;
+
+                    photo = m_Photos[i];
+                    prevPhoto = (i == 0 ? null : m_Photos[i - 1]);
+
+                    groupBar = GetGroupBar(prevPhoto, photo);
+                    if (groupBar != null)
+                    {
+                        if (i != m_FirstVisibleIndex)
+                            verticalOffset += 30;
+
+                        if (column > 0)
+                        {
+                            row++;
+                            column = 0;
+                        }
+
+                        groupBar.Top = verticalOffset + row * (ItemControlHeigth + 10);
+                        groupBar.Width = this.ClientRectangle.Width;
+                        m_GroupBarControls.Add(groupBar);
+                        this.Controls.Add(groupBar);
+                        verticalOffset += groupBar.Height + 5;
+                    }
+
+                    ctl.Photo = photo;
+                    ctl.Selected = m_SelectedItems.Contains(photo);
+
+                    if (m_Thumbnails.ContainsKey(photo.Id))
+                        ctl.Image = m_Thumbnails[photo.Id];
+                    else
+                        ctl.Image = null;
+
+                    ctl.Left = 10 + column * (ItemControlWidth + 10);
+                    ctl.Top = verticalOffset + row * (ItemControlHeigth + 10);
+
+                    column++;
+                    if (column >= m_VisibleColumns)
+                    {
+                        row++;
+                        if (row > m_VisibleRows)
+                            break;
+
+                        column = 0;
+                    }
                 }
 
-                ctl.Photo = photo;
-                ctl.Selected = m_SelectedItems.Contains(photo);
-
-                if (m_Thumbnails.ContainsKey(photo.Id))
-                    ctl.Image = m_Thumbnails[photo.Id];
-                else
-                    ctl.Image = null;
-               
-                ctl.Left = 10 + column * (ItemControlWidth + 10);
-                ctl.Top = verticalOffset + row * (ItemControlHeigth + 10);
-
-                column++;
-                if (column >= m_VisibleColumns)
+                lock (m_Locker)
                 {
-                    row++;
-                    if (row > m_VisibleRows)
-                        break;
-
-                    column = 0;
+                    for (int i = m_ItemControls.Count - 1; i >= usedItems; i--)
+                    {
+                        ctl = m_ItemControls[i];
+                        //ctl.OnMouseDown -= new MyListViewItemControl.MouseDownHandler(ctl_OnMouseDown);
+                        //ctl.OnMouseUp -= new MyListViewItemControl.MouseUpHandler(ctl_OnMouseUp);
+                        ctl.OnMouseEvent -= new MyListViewItemControl.MouseEventsHandler(ctl_OnMouseEvent);
+                        this.Controls.Remove(ctl);
+                        ctl.Dispose();
+                        m_ItemControls.Remove(ctl);
+                    }
                 }
-            }
 
-            lock (m_Locker)
-            {
-                for (int i = m_ItemControls.Count - 1; i >= usedItems; i--)
-                {
-                    ctl = m_ItemControls[i];
-                    //ctl.OnMouseDown -= new MyListViewItemControl.MouseDownHandler(ctl_OnMouseDown);
-                    //ctl.OnMouseUp -= new MyListViewItemControl.MouseUpHandler(ctl_OnMouseUp);
-                    ctl.OnMouseEvent -= new MyListViewItemControl.MouseEventsHandler(ctl_OnMouseEvent);
-                    this.Controls.Remove(ctl);
-                    ctl.Dispose();
-                    m_ItemControls.Remove(ctl);
-                }
-            }
-
-            RequestThumbnails();            
+                RequestThumbnails();
         }
 
         void ctl_OnMouseEvent(string eventType, MyListViewItemControl sender, MouseEventArgs e)
@@ -499,7 +512,7 @@ namespace Photo.org
                     RefreshOrWhatever();
                     return;
                 }
-
+                
                 if (ModifierKeys == Keys.Shift && m_SelectedItems.Count > 0)
                 {
                     int begin = -1, end = -1;
@@ -524,6 +537,9 @@ namespace Photo.org
                     RefreshOrWhatever();
                     return;
                 }
+
+                if (ModifierKeys != Keys.Shift && ModifierKeys != Keys.Control)
+                    EnsureSelectionVisible();
 
                 m_SelectedItems.Clear();
                 m_SelectedItems.Add(sender.Photo);

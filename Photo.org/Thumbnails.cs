@@ -380,6 +380,12 @@ namespace Photo.org
             if (!photo.Exists())
                 return;
 
+            if (photo.IsVideo)
+            {
+                OpenFile();
+                return;
+            }
+
             m_CurrentlyShownPhotoIndex = 0;
             Viewer.ShowPhoto(photo);
             m_ThumbnailView.Visible = false;
@@ -444,6 +450,7 @@ namespace Photo.org
             {
                 photo = new Photo();
                 photo.Id = new Guid(dr["PHOTO_ID"].ToString());
+                photo.IsVideo = (dr["IS_VIDEO"].ToString() == "1");
                 photo.Path = dr["PATH"].ToString();
                 photo.Filename = dr["FILENAME"].ToString();
                 photo.FileSize = long.Parse(dr["FILESIZE"].ToString());
@@ -687,7 +694,7 @@ namespace Photo.org
 
         internal static void SearchByFilename()
         {            
-            string x = Common.InputBox("kerro");
+            string x = Common.InputBox("Search string");
             if (x == null)
                 return;
 

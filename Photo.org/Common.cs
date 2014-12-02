@@ -16,6 +16,7 @@ namespace Photo.org
         private static MainForm m_MainForm = null;
         private static SplitContainer m_SplitContainer = new SplitContainer();
         private static bool m_LayoutVisited = false;
+        public static string CommandLineDatabaseFilename = "";
 
         internal static void Initialize(MainForm mainForm)
         {
@@ -181,12 +182,21 @@ namespace Photo.org
         {
             using (MemoryStream strm = new MemoryStream())
             {
-                image.Save(strm, System.Drawing.Imaging.ImageFormat.Bmp);
+                image.Save(strm, System.Drawing.Imaging.ImageFormat.Png);
+
+                byte[] imgBytes = strm.ToArray();
                 MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-                string encoded = BitConverter.ToString(md5.ComputeHash(strm)).Replace("-", null).ToLower();                
-                strm.Close();
-                md5.Clear();
-                return encoded;
+                byte[] hash = md5.ComputeHash(imgBytes);
+                string imageMD5 = BitConverter.ToString(hash).Replace("-", "").ToLower();
+                strm.Dispose();
+
+                return imageMD5;
+
+                //MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+                //string encoded = BitConverter.ToString(md5.ComputeHash(strm)).Replace("-", null).ToLower();                
+                //strm.Close();
+                //md5.Clear();
+                //return encoded;
             }
 
             //System.Drawing.ImageConverter ic = new System.Drawing.ImageConverter();
@@ -210,7 +220,7 @@ namespace Photo.org
             //return s.ToString();
         }
 
-        internal static string GetMD5Hash(string input)
+        internal static string xxGetMD5Hash(string input)
         {
             System.Security.Cryptography.MD5CryptoServiceProvider x = new System.Security.Cryptography.MD5CryptoServiceProvider();
             byte[] bs = System.Text.Encoding.UTF8.GetBytes(input);
@@ -229,6 +239,7 @@ namespace Photo.org
         {
             using (InputBoxForm f = new InputBoxForm())
             {
+                f.Prompt = prompt;
                 f.ShowDialog();
                 if (f.DialogResult == DialogResult.Cancel)
                     return null;
@@ -272,14 +283,44 @@ namespace Photo.org
 
         internal static void ParseCommandLine(string[] args)
         {
-            if (args.Contains("-r") || args.Contains("-R"))
-                Status.ReadOnly = true;
+            bool nextArgIsDatabaseFilename = false;
 
-            if (args.Contains("-h") || args.Contains("-H"))
-                Status.ShowHiddenPhotos = true;
+            foreach (string arg in args)
+            {
+                if (nextArgIsDatabaseFilename)
+                {
+                    CommandLineDatabaseFilename = arg;
+                    nextArgIsDatabaseFilename = false;
+                    continue;
+                }
 
-            if (args.Contains("-x") || args.Contains("-X"))
-                Status.ShowHiddenCategories = true;
+                switch (arg.ToLower())
+                {
+                    case "-r":
+                        Status.ReadOnly = true;
+                        break;
+                    case "-h":
+                        Status.ShowHiddenPhotos = true;
+                        break;
+                    case "-x":
+                        Status.ShowHiddenCategories = true;
+                        break;
+                    case "-d":
+                        nextArgIsDatabaseFilename = true;
+                        break;
+                }
+            }       
+
+            //if (args.Contains("-r") || args.Contains("-R"))
+            //    Status.ReadOnly = true;
+
+            //if (args.Contains("-h") || args.Contains("-H"))
+            //    Status.ShowHiddenPhotos = true;
+
+            //if (args.Contains("-x") || args.Contains("-X"))
+            //    Status.ShowHiddenCategories = true;
+
+            
         }
     }
 }

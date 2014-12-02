@@ -129,6 +129,11 @@ namespace Photo.org
             menu.Click += new EventHandler(menu_Click);
             parent.DropDownItems.Add(menu);
 
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsRepairAutoCategories", "&Repair auto categories"));
+            menu.Name = "Tools_RepairAutoCategories";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsStatistics", "&Statistics"));
             menu.Name = "Tools_Statistics";
             menu.Click += new EventHandler(menu_Click);
@@ -240,6 +245,10 @@ namespace Photo.org
                 case "Tools_Maintenance":
                     if (!Status.ReadOnly)
                         Database.DoMaintenance();
+                    break;
+                case "Tools_RepairAutoCategories":
+                    if (!Status.ReadOnly)
+                        Database.RepairAutoCategories();
                     break;
                 case "Tools_Statistics":
                     Database.ShowStatistics();

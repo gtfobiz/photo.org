@@ -26,7 +26,7 @@ namespace Photo.org
 
 #region private members
 
-        private const int c_DatabaseVersion = 12;
+        private const int c_DatabaseVersion = 14;
 
         private static SQLiteConnection m_Connection = null;
         private static SQLiteTransaction m_Transaction = null;
@@ -231,7 +231,7 @@ namespace Photo.org
         /// <param name="categoryId"></param>
         /// <param name="parentId"></param>
         /// <param name="name"></param>
-        internal static void InsertCategory(Guid categoryId, Guid parentId, string name)
+        internal static void InsertCategory(Guid categoryId, Guid parentId, string name, Color color)
         {
             using (SQLiteCommand comm = new SQLiteCommand())
             {
@@ -240,6 +240,12 @@ namespace Photo.org
                 AddParameter(comm, "categoryId", DbType.Guid).Value = categoryId;
                 AddParameter(comm, "parentId", DbType.Guid).Value = parentId;
                 AddParameter(comm, "name", DbType.String).Value = name;
+
+                if (color == Color.Empty)
+                    AddParameter(comm, "color", DbType.Int32).Value = DBNull.Value;
+                else
+                    AddParameter(comm, "color", DbType.Int32).Value = color.ToArgb();
+
                 comm.ExecuteNonQuery();
             }
         }
@@ -272,12 +278,12 @@ namespace Photo.org
         /// <param name="filename"></param>
         /// <param name="filesize"></param>
         /// <param name="hash"></param>
-        internal static void InsertPhoto(Guid photoId, Guid pathId, string filename, long filesize, string hash, long width, long height)
+        internal static void InsertPhoto(Guid photoId, Guid pathId, string filename, long filesize, string hash, long width, long height, bool isVideo)
         {
             using (SQLiteCommand comm = new SQLiteCommand())
             {
                 comm.Connection = m_Connection;
-                comm.CommandText = "insert into PHOTO (PHOTO_ID, PATH_ID, FILENAME, FILESIZE, HASH, WIDTH, HEIGHT) values (@photoId, @pathId, @filename, @filesize, @hash, @width, @height)";
+                comm.CommandText = "insert into PHOTO (PHOTO_ID, PATH_ID, FILENAME, FILESIZE, HASH, WIDTH, HEIGHT, IS_VIDEO) values (@photoId, @pathId, @filename, @filesize, @hash, @width, @height, @isVideo)";
                 AddParameter(comm, "photoId", DbType.Guid).Value = photoId;
                 AddParameter(comm, "pathId", DbType.Guid).Value = pathId;
                 AddParameter(comm, "filename", DbType.String).Value = filename;
@@ -285,6 +291,7 @@ namespace Photo.org
                 AddParameter(comm, "hash", DbType.String).Value = hash;
                 AddParameter(comm, "width", DbType.Int64).Value = width;
                 AddParameter(comm, "height", DbType.Int64).Value = height;
+                AddParameter(comm, "isVideo", DbType.Int64).Value = (isVideo ? "1" : "0");
                 comm.ExecuteNonQuery();
             }
         }
@@ -384,6 +391,17 @@ namespace Photo.org
 #endregion
 
 #region delete methods
+
+        internal static void DeleteAllCategoryPaths()
+        {
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                comm.Connection = m_Connection;
+
+                comm.CommandText = "delete from CATEGORY_PATH";
+                comm.ExecuteNonQuery();
+            }
+        }
 
         internal static void DeleteCategoryPathByCategory(Guid categoryId)
         {
@@ -520,7 +538,7 @@ namespace Photo.org
                 where += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
             }
 
-            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
+            string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE, ph.IS_VIDEO ";
             sql += "from PHOTO ph ";
             sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
             sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
@@ -539,6 +557,7 @@ namespace Photo.org
             ds.Tables.Add("Photos");
             DataColumnCollection dcc = ds.Tables["Photos"].Columns;
             dcc.Add("PHOTO_ID");
+            dcc.Add("IS_VIDEO");
             dcc.Add("PATH");
             dcc.Add("FILENAME");
             dcc.Add("FILESIZE");
@@ -562,6 +581,7 @@ namespace Photo.org
 
                     resultRow = ds.Tables["Photos"].NewRow();
                     resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
+                    resultRow["IS_VIDEO"] = dr["IS_VIDEO"];
                     resultRow["PATH"] = dr["PATH"];
                     resultRow["FILENAME"] = dr["FILENAME"];
                     resultRow["FILESIZE"] = dr["FILESIZE"];
@@ -756,7 +776,7 @@ namespace Photo.org
                     comm.CommandText = "create unique index idx_PATH on PATH (PATH_ID);";
                     comm.ExecuteNonQuery();
 
-                    comm.CommandText = "create table PHOTO (PHOTO_ID guid not null primary key, PATH_ID guid, FILENAME nvarchar(255), FILESIZE long, HASH nvarchar(32), IMPORT_DATE timestamp null, WIDTH integer null, HEIGHT integer null);";
+                    comm.CommandText = "create table PHOTO (PHOTO_ID guid not null primary key, PATH_ID guid, FILENAME nvarchar(255), FILESIZE long, HASH nvarchar(32), IMPORT_DATE timestamp null, WIDTH integer null, HEIGHT integer null, IS_VIDEO integer null);";
                     comm.ExecuteNonQuery();
                     comm.CommandText = "create unique index idx_PHOTO on PHOTO (PHOTO_ID);";
                     comm.ExecuteNonQuery();
@@ -829,7 +849,11 @@ namespace Photo.org
         {
             try
             {
-                m_DatabaseFilename = Settings.Get(Setting.DatabaseFilename);
+                m_DatabaseFilename = Common.CommandLineDatabaseFilename;
+
+                if (m_DatabaseFilename == "")
+                    m_DatabaseFilename = Settings.Get(Setting.DatabaseFilename);
+
                 if (m_DatabaseFilename == "")
                     return;
 
@@ -1010,9 +1034,72 @@ namespace Photo.org
             }
         }
 
+        internal static void RehashPhotos()
+        {
+            //CreateNewHashesAndUpdateDimensions(); // fixaa tuolta kommentti pois
+
+            //Image image1 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\2004\hehheh-161204.jpg");
+            //Image image2 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\2003\v_023-170703.jpg");
+            //Image image3 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\(muut)\annatulla.jpg");
+            //Image image4 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\(muut)\jorgos.jpg");
+            //Image image5 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\(muut)\mummola04.jpg");
+            //Image image6 = Image.FromFile(@"d:\backup folder\photos\_images_\perhe\(muut)\santa.JPG");
+
+            //System.Diagnostics.Trace.WriteLine("1: " + Common.GetMD5HashForImage((Image)image1.Clone()));
+            //System.Diagnostics.Trace.WriteLine("2: " + Common.GetMD5HashForImage((Image)image2.Clone()));
+            //System.Diagnostics.Trace.WriteLine("3: " + Common.GetMD5HashForImage((Image)image3.Clone()));
+            //System.Diagnostics.Trace.WriteLine("4: " + Common.GetMD5HashForImage((Image)image4.Clone()));
+            //System.Diagnostics.Trace.WriteLine("5: " + Common.GetMD5HashForImage((Image)image5.Clone()));
+            //System.Diagnostics.Trace.WriteLine("6: " + Common.GetMD5HashForImage((Image)image6.Clone()));
+            //System.Diagnostics.Trace.WriteLine("");
+
+
+            //return;
+
+            string sql = "";
+            string files = "";
+
+            sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.HASH, ph.FILESIZE ";
+            sql += "from PHOTO ph ";
+            sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID";
+
+            DataTable dt = Query(sql, null);
+            int eq = 0, neq = 0;
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                string filename = dr["PATH"].ToString();
+                if (!filename.EndsWith(@"\"))
+                    filename += @"\";
+                filename += dr["FILENAME"].ToString();
+
+                Image image = Image.FromFile(filename);
+                string Hash = Common.GetMD5HashForImage(image);
+                if (Hash == null)
+                    continue;
+
+                //UpdatePhoto((Guid)dr["PHOTO_ID"], dr["FILENAME"], )
+
+                if (Hash == dr["HASH"].ToString())
+                    eq++;
+                else
+                {
+                    neq++;
+                    files += filename + "\n";
+                }
+            }
+
+            //eq = 10210, neq = 9671, maxdate = 20141126
+            //filesize eq = 19778, neq = 103        
+            //uusiksajo -> eq = 19571, neq = 310
+            //seuraava ilman muutoksia -> eq = 19677, neq = 204
+
+            int x = eq;
+        }
+
         internal static void DoMaintenance()
         {            
-            Status.Busy = true;            
+            Status.Busy = true;
 
             //todo:
             //pragma integrity_check
@@ -1021,19 +1108,23 @@ namespace Photo.org
             int orphanBranches = 0, orphanThumbFiles = 0, obsoletePaths = 0;
 
             Status.PushText();
-            Status.SetText("Assigning derived categories...");
+            //Status.SetText("Assigning derived categories... [1/4]");
+            //DropPhotoCategoryTrigger();
 
-            DropPhotoCategoryTrigger();
-            using (SQLiteCommand comm = new SQLiteCommand())
-            {
-                sql = "delete from PHOTO_CATEGORY where SOURCE = 'A'";
+            //Status.SetText("Assigning derived categories... [2/4]");
+            //using (SQLiteCommand comm = new SQLiteCommand())
+            //{
+            //    sql = "delete from PHOTO_CATEGORY where SOURCE = 'A'";
 
-                comm.Connection = m_Connection;
-                comm.CommandText = sql;
-                comm.ExecuteNonQuery();
-            }
-            ApplyAutoCategories();
-            CreatePhotoCategoryTrigger();
+            //    comm.Connection = m_Connection;
+            //    comm.CommandText = sql;
+            //    comm.ExecuteNonQuery();
+            //}
+
+            //Status.SetText("Assigning derived categories... [3/4]");
+            //ApplyAutoCategories();
+            //Status.SetText("Assigning derived categories... [4/4]");
+            //CreatePhotoCategoryTrigger();
 
             Status.SetText("Handling orphan category branches...");
 
@@ -1080,9 +1171,11 @@ namespace Photo.org
                 comm.Connection = m_Connection;
                 comm.CommandText = sql;
                 obsoletePaths = comm.ExecuteNonQuery();
-            }         
+            }
 
-            //rebuild categorypath
+            Status.SetText("Rebuilding category paths...");
+            Categories.RebuildCategoryPaths();
+
             //backup
 
             //select pc.CATEGORY_ID photo_category pc left join category c on c.CATEGORY_ID = pc.CATEGORY_ID where c.CATEGORY_ID is null
@@ -1169,6 +1262,38 @@ namespace Photo.org
 
             Status.Busy = false;
             MessageBox.Show(statistics, "Statistics");
+        }
+
+        internal static void RepairAutoCategories()
+        {
+            Status.Busy = true;
+
+            //todo:
+            //pragma integrity_check
+            //-      
+            string sql = "";            
+
+            Status.PushText();
+            Status.SetText("Assigning derived categories... [1/4]");
+            DropPhotoCategoryTrigger();
+
+            Status.SetText("Assigning derived categories... [2/4]");
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                sql = "delete from PHOTO_CATEGORY where SOURCE = 'A'";
+
+                comm.Connection = m_Connection;
+                comm.CommandText = sql;
+                comm.ExecuteNonQuery();
+            }
+
+            Status.SetText("Assigning derived categories... [3/4]");
+            ApplyAutoCategories();
+            Status.SetText("Assigning derived categories... [4/4]");
+            CreatePhotoCategoryTrigger();
+
+            Status.PopText();
+            Status.Busy = false;
         }
     }
 }

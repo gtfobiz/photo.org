@@ -28,20 +28,20 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
+            this.l_Prompt = new System.Windows.Forms.Label();
             this.f_InputText = new System.Windows.Forms.TextBox();
             this.cmdOk = new System.Windows.Forms.Button();
             this.cmdCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
-            // label1
+            // l_Prompt
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 9);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "label1";
+            this.l_Prompt.AutoSize = true;
+            this.l_Prompt.Location = new System.Drawing.Point(12, 9);
+            this.l_Prompt.Name = "l_Prompt";
+            this.l_Prompt.Size = new System.Drawing.Size(40, 13);
+            this.l_Prompt.TabIndex = 0;
+            this.l_Prompt.Text = "Prompt";
             // 
             // f_InputText
             // 
@@ -72,13 +72,15 @@
             // 
             // InputBoxForm
             // 
+            this.AcceptButton = this.cmdOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.CancelButton = this.cmdCancel;
             this.ClientSize = new System.Drawing.Size(714, 91);
             this.Controls.Add(this.cmdCancel);
             this.Controls.Add(this.cmdOk);
             this.Controls.Add(this.f_InputText);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.l_Prompt);
             this.Name = "InputBoxForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
@@ -91,7 +93,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label l_Prompt;
         private System.Windows.Forms.TextBox f_InputText;
         private System.Windows.Forms.Button cmdOk;
         private System.Windows.Forms.Button cmdCancel;

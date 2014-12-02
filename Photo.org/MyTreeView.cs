@@ -30,7 +30,7 @@ namespace Photo.org
         private const int c_NodeHeight = 22;
         private const int c_NodeIndent = 16;
         private MyTreeNode m_Root = null;
-        private Dictionary<object, MyTreeNode> m_AllNodes = new Dictionary<object, MyTreeNode>();
+        private Dictionary<object, MyTreeNode> m_AllNodes = new Dictionary<object, MyTreeNode>();        
         private List<MyTreeNode> m_Nodes = new List<MyTreeNode>();
         private List<MyTreeNode> m_SelectedNodes = new List<MyTreeNode>();
         private VScrollBar m_ScrollBar = new VScrollBar();
@@ -42,7 +42,13 @@ namespace Photo.org
         {
             get { return m_SelectedNodes; }
             set { m_SelectedNodes = value; }
-        }        
+        }
+
+        internal Dictionary<object, MyTreeNode> AllNodes
+        {
+            get { return m_AllNodes; }
+            //set { m_AllNodes = value; }
+        }
 
         public MyNodes Nodes
         {

@@ -189,6 +189,24 @@ namespace Photo.org
                 }
                 UpdateVersionInfo(12);
             }
+
+            if (version < 13)
+            {
+                using (SQLiteCommand comm = new SQLiteCommand())
+                {
+                    comm.Connection = m_Connection;
+
+                    comm.CommandText = "alter table PHOTO add IS_VIDEO integer null;";
+                    comm.ExecuteNonQuery();
+                }
+                UpdateVersionInfo(13);
+            }
+
+            if (version < 14)
+            {
+                CreateNewHashesAndUpdateDimensions();
+                UpdateVersionInfo(14);
+            }
         }
 
         private static void UpdateVersionInfo(int version)
@@ -220,7 +238,7 @@ namespace Photo.org
             DataTable dt = Query(sql, null);
             Status.SetMaxValue(dt.Rows.Count);
             foreach (DataRow dr in dt.Rows)
-                if (dr["HASH"].ToString() == "")
+                //if (dr["HASH"].ToString() == "")
                     try
                     {
                         System.Drawing.Image image = System.Drawing.Image.FromFile(dr["PATH"].ToString() + @"\" + dr["FILENAME"].ToString());                        
