@@ -46,6 +46,7 @@
             this.lstCategories.Size = new System.Drawing.Size(260, 212);
             this.lstCategories.TabIndex = 1;
             this.lstCategories.Click += new System.EventHandler(this.lstCategories_Click);
+            this.lstCategories.MouseDown += new System.Windows.Forms.MouseEventHandler(this.lstCategories_MouseDown);
             // 
             // lblStartsWith
             // 

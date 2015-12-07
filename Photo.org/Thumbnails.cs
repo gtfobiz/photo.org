@@ -147,12 +147,6 @@ namespace Photo.org
                 case Keys.F2:
                     ShowRenameFileDialog();
                     return true;
-                case Keys.F3:
-                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\1sohvakuva-170405.jpg");
-                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\2sohvakuva-170405.jpg");
-                    //PrintMD5Hash(@"C:\Users\Jarno\Desktop\selvitys\3sohvakuva-170405.jpg");
-                //    Core.ShowAllExif(@"C:\Users\Jarno\Desktop\selvitys\kuva-170405.jpg");
-                    return true;
                 case Keys.F:
                     if (e.Control)
                     {
@@ -380,11 +374,11 @@ namespace Photo.org
             if (!photo.Exists())
                 return;
 
-            if (photo.IsVideo)
-            {
-                OpenFile();
-                return;
-            }
+            //if (photo.IsVideo)
+            //{
+            //    OpenFile();
+            //    return;
+            //}
 
             m_CurrentlyShownPhotoIndex = 0;
             Viewer.ShowPhoto(photo);
@@ -453,8 +447,9 @@ namespace Photo.org
                 photo.IsVideo = (dr["IS_VIDEO"].ToString() == "1");
                 photo.Path = dr["PATH"].ToString();
                 photo.Filename = dr["FILENAME"].ToString();
-                photo.FileSize = long.Parse(dr["FILESIZE"].ToString());
+                photo.FileSize = long.Parse(dr["FILESIZE"].ToString());            
                 photo.ImportDate = DateTime.Parse(dr["IMPORT_DATE"].ToString());
+
                 photo.Categories = new List<Guid>();
                 photo.AutoCategories = new List<Guid>();                
 
@@ -658,14 +653,23 @@ namespace Photo.org
             m_ThumbnailView.BeginUpdate();
 
             foreach (Photo p in m_ThumbnailView.SelectedItems)
-            {
-                p.Remove(recycle);
-                m_ThumbnailView.Photos.Remove(p);
-            }
+                RemovePhoto(p, recycle, false);
 
             m_ThumbnailView.EndUpdate();
 
             Status.Busy = false;
+        }
+
+        internal static void RemovePhoto(Photo photo, bool recycle, bool handleControlUpdate)
+        {
+            if (handleControlUpdate)
+                m_ThumbnailView.BeginUpdate();
+
+            photo.Remove(recycle);
+            m_ThumbnailView.Photos.Remove(photo);
+
+            if (handleControlUpdate)
+                m_ThumbnailView.EndUpdate();
         }
 #endregion
 

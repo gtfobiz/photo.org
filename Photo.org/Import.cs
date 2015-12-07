@@ -124,6 +124,7 @@ namespace Photo.org
 
             Database.Commit();
             Status.HideProgress();
+            Status.ClearTextStack();
         }
     }
 }

@@ -13,6 +13,8 @@ namespace Photo.org
     {
         private static Image m_Image = null;
         private static PictureBox m_PictureBox = new PictureBox();
+        //private static MediaPlayer m_MediaPlayer = new MediaPlayer();
+        //private static DrawingVisual dv = new DrawingVisual();
         private static Label m_FilenameLabel = new Label();
         private static Panel m_CategoriesPanel = new Panel();
         private static Photo m_Photo = null;
@@ -26,6 +28,9 @@ namespace Photo.org
         private static Point m_PanningOrigin = Point.Empty;
         private static bool m_IsImageDisposable = false;
         //private static bool m_PaintingArea = false;
+        private static bool m_FullScreenViewer = false;
+
+        private static AxWMPLib.AxWindowsMediaPlayer m_MediaPlayer = new AxWMPLib.AxWindowsMediaPlayer();
 
         /// <summary>
         /// Initializes the Viewer component
@@ -37,6 +42,14 @@ namespace Photo.org
             m_PictureBox.Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom | AnchorStyles.Left;
             m_PictureBox.Location = new Point(0, 25);
             m_PictureBox.Size = new Size(controlCollection.Owner.ClientRectangle.Width, controlCollection.Owner.ClientRectangle.Height - 50);
+
+            m_MediaPlayer.Enabled = true;
+            m_MediaPlayer.Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom | AnchorStyles.Left;
+            m_MediaPlayer.Location = new Point(0, 25);
+            m_MediaPlayer.Visible = false;
+            m_MediaPlayer.Size = new Size(controlCollection.Owner.ClientRectangle.Width, controlCollection.Owner.ClientRectangle.Height - 50);            
+            m_MediaPlayer.CreateControl();            
+            controlCollection.Add(m_MediaPlayer);
 
             m_FilenameLabel.Height = 25;
             m_FilenameLabel.Text = "";
@@ -107,7 +120,32 @@ namespace Photo.org
 
             List<Photo> photoList = new List<Photo>();
 
-            switch (e.KeyCode)
+            //if (e.Shift)
+            //    switch (e.KeyCode)
+            //    {
+            //        case Keys.PageDown:
+            //            Zoom(false);
+            //            return true;
+            //        case Keys.PageUp:
+            //            Zoom(true);
+            //            return true;
+            //        case Keys.Right:
+            //            if (m_ZoomFactor != 1M)
+            //            {
+            //                m_ZoomCenter.X += 100;
+            //                HandleZoomLevel();
+            //            }
+            //            return true; /// ???????????????????????????????????
+            //        case Keys.Left:
+            //            if (m_ZoomFactor != 1M)
+            //            {
+            //                m_ZoomCenter.X -= 100;
+            //                HandleZoomLevel();
+            //            }
+            //            return true;
+            //    }
+
+            switch (e.KeyCode) 
             {
                 case Keys.Enter:
                     HideViewer();
@@ -156,14 +194,44 @@ namespace Photo.org
                     photoList.Add(m_Photo);
                     Categories.SetPhotoCategory(photoList, Categories.LastCategoryId, true);
                     return true;
-                case Keys.Insert:
-                    Zoom(true);
-                    return true;
                 case Keys.Delete:
-                    Zoom(false);
+                    RemovePhoto();
+                    return true;
+                case Keys.F11:                    
+                    SetFullscreenViewer(!m_FullScreenViewer);
                     return true;
             }
             return false;
+        }
+
+        private static void SetFullscreenViewer(bool state)
+        {
+            Common.SetFullscreen(state);
+            m_FullScreenViewer = state;
+        }
+
+        private static void RemovePhoto()
+        {
+            bool recycle = Common.IsShiftPressed();
+
+            if (recycle)
+            {
+                if (MessageBox.Show("Send " + m_Photo.Filename + " to recycle bin?", "Send to recycle bin", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    return;
+            }
+            else
+            {
+                if (MessageBox.Show("Remove " + m_Photo.Filename + " from database?", "Remove from database", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                    return;
+            }
+
+            Status.Busy = true;
+
+            Thumbnails.RemovePhoto(m_Photo, recycle, true);
+
+            Status.Busy = false;
+
+            HideViewer();
         }
 
         private static void HidePhoto(bool hide)
@@ -229,10 +297,22 @@ namespace Photo.org
             m_FilenameLabel.Visible = false;
             m_CategoriesPanel.Visible = false;            
             m_PictureBox.Visible = false;
+            
+            m_MediaPlayer.Visible = false;
+
+//TODO: parempi hanskaus
+            try
+            {
+                m_MediaPlayer.Ctlcontrols.stop();
+            }
+            catch { }
 
             m_PictureBox.Image = null;
             if (m_Image != null)
                 m_Image.Dispose();
+
+            if (m_FullScreenViewer)
+                SetFullscreenViewer(false);
         }
 
         private static void HideViewer()
@@ -249,11 +329,18 @@ namespace Photo.org
             if (m_PictureBox.Image == null)
                 return;
 
-            SizeF size = m_PictureBox.Image.PhysicalDimension;
-            if (size.Width < m_PictureBox.Width && size.Height < m_PictureBox.Height)
-                m_PictureBox.SizeMode = PictureBoxSizeMode.CenterImage;
-            else
-                m_PictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            try
+            {
+                SizeF size = m_PictureBox.Image.PhysicalDimension;
+                if (size.Width < m_PictureBox.Width && size.Height < m_PictureBox.Height)
+                    m_PictureBox.SizeMode = PictureBoxSizeMode.CenterImage;
+                else
+                    m_PictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString());
+            }
         }
 
         internal static void HandleZoomLevel()
@@ -273,12 +360,12 @@ namespace Photo.org
                 else
                     canvas.Y = (int)(canvas.X / m_AspectRatio);
 
-                Bitmap zoomedImage = new Bitmap(canvas.X, canvas.Y, PixelFormat.Format24bppRgb);
+                Bitmap zoomedImage = new Bitmap(canvas.X, canvas.Y, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
                 //try
                 {
                     using (Graphics g2 = Graphics.FromImage(zoomedImage))
                     {
-                        g2.Clear(Color.Cyan);
+                        g2.Clear(m_PictureBox.BackColor);
                         g2.InterpolationMode = InterpolationMode.NearestNeighbor;
 
                         g2.DrawImage(m_Image, 
@@ -314,35 +401,55 @@ namespace Photo.org
             }
             else
             {
-                if (m_Image != null)
-                    m_Image.Dispose();
+                if (photo.IsVideo)
+                {
+                    m_FilenameLabel.Visible = true;
+                    m_CategoriesPanel.Visible = true;
+                    m_MediaPlayer.Visible = true;
+                    m_MediaPlayer.settings.setMode("loop", true); // autoRewind, showFrame, shuffle, loop
+                    m_MediaPlayer.stretchToFit = true;
+                    m_MediaPlayer.URL = photo.FilenameWithPath;
 
-                m_Image = Image.FromFile(m_Photo.FilenameWithPath);
+                    Status.ActiveComponent = Component.Viewer;
+                    RefreshCategoryLabels();
 
-                m_AspectRatio = (decimal)m_Image.Width / (decimal)m_Image.Height;
-                m_ZoomFactor = 1M;
-                m_ZoomCenter = new Point(m_Image.Width / 2, m_Image.Height / 2);
-                m_PanningOrigin = Point.Empty;
-                m_PictureBox.Cursor = Cursors.Default;
+                    m_FilenameLabel.Text = m_Photo.Filename + "  ("
+                        + Common.GetFileSizeString(m_Photo.FileSize) + ")  ["
+                        + (Thumbnails.CurrentPhotoOrdinalNumber).ToString() + " / "
+                        + Thumbnails.NumberOfPhotos.ToString() + "]";
+                }
+                else
+                {
+                    if (m_Image != null)
+                        m_Image.Dispose();
 
-                Status.ActiveComponent = Component.Viewer;                
+                    m_Image = Image.FromFile(m_Photo.FilenameWithPath);
 
-                RefreshCategoryLabels();
+                    m_AspectRatio = (decimal)m_Image.Width / (decimal)m_Image.Height;
+                    m_ZoomFactor = 1M;
+                    m_ZoomCenter = new Point(m_Image.Width / 2, m_Image.Height / 2);
+                    m_PanningOrigin = Point.Empty;
+                    m_PictureBox.Cursor = Cursors.Default;
 
-                //m_PictureBox.Image = m_Image;
-                HandleZoomLevel();                
+                    Status.ActiveComponent = Component.Viewer;
 
-                SizeF size = m_PictureBox.Image.PhysicalDimension;
-                m_FilenameLabel.Text = m_Photo.Filename + "  (" 
-                    + size.Width.ToString() + " x " 
-                    + size.Height.ToString() + ", " 
-                    + Common.GetFileSizeString(m_Photo.FileSize) + ")  [" 
-                    + (Thumbnails.CurrentPhotoOrdinalNumber).ToString() + " / " 
-                    + Thumbnails.NumberOfPhotos.ToString() + "]";
+                    RefreshCategoryLabels();
 
-                m_FilenameLabel.Visible = true;
-                m_CategoriesPanel.Visible = true;
-                m_PictureBox.Visible = true;
+                    //m_PictureBox.Image = m_Image;
+                    HandleZoomLevel();
+
+                    SizeF size = m_PictureBox.Image.PhysicalDimension;
+                    m_FilenameLabel.Text = m_Photo.Filename + "  ("
+                        + size.Width.ToString() + " x "
+                        + size.Height.ToString() + ", "
+                        + Common.GetFileSizeString(m_Photo.FileSize) + ")  ["
+                        + (Thumbnails.CurrentPhotoOrdinalNumber).ToString() + " / "
+                        + Thumbnails.NumberOfPhotos.ToString() + "]";
+
+                    m_FilenameLabel.Visible = true;
+                    m_CategoriesPanel.Visible = true;
+                    m_PictureBox.Visible = true;
+                }
             }
 
             SetCategoriesPanelBackColor();
@@ -352,7 +459,7 @@ namespace Photo.org
 
         private static void SetCategoriesPanelBackColor()
         {
-            m_CategoriesPanel.BackColor = (m_Photo.Categories.Contains(Guids.Hidden) ? Color.Pink : SystemColors.Control);
+            m_CategoriesPanel.BackColor = (m_Photo.Categories.Contains(Guids.Hidden) ? System.Drawing.Color.Pink : SystemColors.Control);
         }
 
         private static void RefreshCategoryLabels()
@@ -548,6 +655,8 @@ namespace Photo.org
     
         internal static void MouseWheelOutsideTreeView(bool mouseWheelForward)
         {
+            // todo: tätä eventtiä ei tuu, jos kuvaa zoomattu näppiksellä
+
             if (m_PanningOrigin == Point.Empty)
             {
                 ShowNextPhoto(!mouseWheelForward);
@@ -614,8 +723,8 @@ namespace Photo.org
         {
             base.OnMouseEnter(e);
 
-            this.BackColor = Color.White;
-            this.ForeColor = Color.Blue;
+            this.BackColor = System.Drawing.Color.White;
+            this.ForeColor = System.Drawing.Color.Blue;
         }
 
         protected override void OnMouseLeave(EventArgs e)

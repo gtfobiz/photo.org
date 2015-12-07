@@ -368,6 +368,13 @@ namespace Photo.org
         {
             MyTreeNode senderNode = (sender as Label).Tag as MyTreeNode;
 
+            if (Common.IsShiftPressed() && e.Button == MouseButtons.Left)
+            {
+                if (!Status.ReadOnly)
+                    DoDragDrop(senderNode, DragDropEffects.Link);
+                return;
+            }
+
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
             { 
                 if (Common.IsCtrlPressed())

@@ -17,6 +17,8 @@ namespace Photo.org
         private static SplitContainer m_SplitContainer = new SplitContainer();
         private static bool m_LayoutVisited = false;
         public static string CommandLineDatabaseFilename = "";
+        private static int m_StoredSplitterDistance = 0;
+        private static FormWindowState m_StoredFormWindowState = FormWindowState.Normal;
 
         internal static void Initialize(MainForm mainForm)
         {
@@ -98,6 +100,11 @@ namespace Photo.org
             Categories.TakeFocus();
         }
 
+        internal static void SetFormCaption(string caption)
+        {
+            m_MainForm.Text = caption;
+        }
+
         static void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             Settings.Set(Setting.MainWindowLeft, m_MainForm.Left.ToString());
@@ -108,6 +115,33 @@ namespace Photo.org
             Settings.Set(Setting.SplitterDistance, m_SplitContainer.SplitterDistance.ToString());            
 
             Dispose();
+        }
+
+        internal static void SetFullscreen(bool state)
+        {
+            if (state)
+            {
+                Menus.SetVisible(false);
+                Status.SetVisible(false);
+
+                m_StoredFormWindowState = m_MainForm.WindowState;
+                m_StoredSplitterDistance = m_SplitContainer.SplitterDistance;
+
+                m_MainForm.FormBorderStyle = FormBorderStyle.None;
+                m_MainForm.WindowState = FormWindowState.Maximized;
+                m_SplitContainer.SplitterDistance = 0;
+                m_SplitContainer.Panel1Collapsed = true;
+            }
+            else
+            {
+                Menus.SetVisible(true);
+                Status.SetVisible(true);
+
+                m_MainForm.FormBorderStyle = FormBorderStyle.Sizable;
+                m_MainForm.WindowState = m_StoredFormWindowState;                
+                m_SplitContainer.Panel1Collapsed = false;
+                m_SplitContainer.SplitterDistance = m_StoredSplitterDistance;
+            }
         }
 
         // temp test
@@ -309,18 +343,7 @@ namespace Photo.org
                         nextArgIsDatabaseFilename = true;
                         break;
                 }
-            }       
-
-            //if (args.Contains("-r") || args.Contains("-R"))
-            //    Status.ReadOnly = true;
-
-            //if (args.Contains("-h") || args.Contains("-H"))
-            //    Status.ShowHiddenPhotos = true;
-
-            //if (args.Contains("-x") || args.Contains("-X"))
-            //    Status.ShowHiddenCategories = true;
-
-            
+            }                   
         }
     }
 }

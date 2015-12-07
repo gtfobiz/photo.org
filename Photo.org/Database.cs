@@ -130,7 +130,9 @@ namespace Photo.org
 
                 comm.CommandText = "PRAGMA recursive_triggers = true";     
                 comm.ExecuteNonQuery();
-            }            
+            }
+
+            Common.SetFormCaption("Photo.org  --  " + m_DatabaseFilename);
         }
 
         private static string GetParameterText(string name)
@@ -236,7 +238,7 @@ namespace Photo.org
             using (SQLiteCommand comm = new SQLiteCommand())
             {
                 comm.Connection = m_Connection;
-                comm.CommandText = "insert into CATEGORY (CATEGORY_ID, PARENT_ID, NAME) values (@categoryId, @parentId, @name)";
+                comm.CommandText = "insert into CATEGORY (CATEGORY_ID, PARENT_ID, NAME, COLOR) values (@categoryId, @parentId, @name, @color)";
                 AddParameter(comm, "categoryId", DbType.Guid).Value = categoryId;
                 AddParameter(comm, "parentId", DbType.Guid).Value = parentId;
                 AddParameter(comm, "name", DbType.String).Value = name;
@@ -963,6 +965,29 @@ namespace Photo.org
             }
         }
 
+        internal static void UpdateRootFolder(Dictionary<Guid, string> paths, string oldRoot, string newRoot)
+        {
+            string path = "";
+
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                comm.Connection = m_Connection;
+                comm.CommandText = "update PATH set PATH = @path where PATH_ID = @pathId";                
+
+                foreach (KeyValuePair<Guid, string> kvp in paths)                
+                    if (kvp.Value.StartsWith(oldRoot))
+                    {
+                        path = kvp.Value.Replace(oldRoot, newRoot);
+
+                        comm.Parameters.Clear();
+                        AddParameter(comm, "path", DbType.String).Value = path;
+                        AddParameter(comm, "pathId", DbType.Guid).Value = kvp.Key;                    
+
+                        comm.ExecuteNonQuery();
+                    }
+            }
+        }
+
         internal static void ApplyAutoCategories()
         {
             ApplyAutoCategories(Guid.Empty);
@@ -1205,6 +1230,22 @@ namespace Photo.org
         {
             object o = GetOne("select 1 from PHOTO where HASH = '" + hash + "'");
             return (o == null || o.ToString() == "1");
+        }
+
+        internal static Dictionary<Guid, string> QueryPaths()
+        {
+            Dictionary<Guid, string> paths = new Dictionary<Guid, string>();
+
+            string sql = "select p.PATH_ID, p.PATH ";
+            sql += "from PATH p ";
+            sql += "order by p.PATH";
+
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+
+            foreach (DataRow dr in Query(sql, parameters).Rows)
+                paths.Add((Guid)dr["PATH_ID"], dr["PATH"].ToString());
+
+            return paths;
         }
 
         internal static void QueryPhotoCategories(Photo photo)

@@ -23,12 +23,31 @@ namespace Photo.org
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileAddImages", "&Add images..."));
             menu.Name = "File_AddImages";
             menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);            
+            parent.DropDownItems.Add(menu);
+
+            //parent.DropDownItems.Add(new ToolStripSeparator());
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileSelectDatabase", "&Select database..."));
             menu.Name = "File_SelectDatabase";
             menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);            
+            parent.DropDownItems.Add(menu);
+
+            //menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileRecentlyUsed", "&Recently used"));
+            //menu.Name = "File_MRU";
+            //parent.DropDownItems.Add(menu);
+            ToolStripMenuItem lesserParent = menu;
+
+            //menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileRecentlyUsedClear", "&Clear"));
+            //menu.Name = "File_MRU_Clear";
+            //menu.Click += new EventHandler(menu_Click);
+            //lesserParent.DropDownItems.Add(menu);
+
+            //lesserParent.DropDownItems.Add(new ToolStripSeparator());
+
+
+            //TODO
+
+
 
             parent.DropDownItems.Add(new ToolStripSeparator());
             
@@ -50,7 +69,7 @@ namespace Photo.org
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrder", "&Order"));
             menu.Name = "View_ThumbnailOrder";
             parent.DropDownItems.Add(menu);
-            ToolStripMenuItem lesserParent = menu;
+            lesserParent = menu;
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "viewThumbnailOrderFilename", "File&name"));
             menu.Name = "View_ThumbnailOrder_Filename";
@@ -131,6 +150,11 @@ namespace Photo.org
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsRepairAutoCategories", "&Repair auto categories"));
             menu.Name = "Tools_RepairAutoCategories";
+            menu.Click += new EventHandler(menu_Click);
+            parent.DropDownItems.Add(menu);
+
+            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsUpdateRootFolder", "&Update root folder"));
+            menu.Name = "Tools_UpdateRootFolder";
             menu.Click += new EventHandler(menu_Click);
             parent.DropDownItems.Add(menu);
 
@@ -256,6 +280,9 @@ namespace Photo.org
                 case "Tools_SearchByFilename":
                     Thumbnails.SearchByFilename();
                     break;
+                case "Tools_UpdateRootFolder":
+                    UpdateRootFolder();
+                    break;
                 case "Category_Select":
                     Categories.ShowCategoryDialog(CategoryDialogMode.Select);
                     break;
@@ -271,6 +298,11 @@ namespace Photo.org
             }
         }
 
+        private static void UpdateRootFolder()
+        {
+            (new UpdateRootForm()).ShowDialog();
+        }
+
         /// <summary>
         /// Sets menu enabled property
         /// </summary>
@@ -278,6 +310,11 @@ namespace Photo.org
         internal static void SetEnabled(bool enabled)
         {
             m_MenuStrip.Enabled = enabled;
+        }
+
+        internal static void SetVisible(bool visible)
+        {
+            m_MenuStrip.Visible = visible;
         }
     }
 }

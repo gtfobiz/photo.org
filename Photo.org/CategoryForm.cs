@@ -112,7 +112,7 @@ namespace Photo.org
                 this.Close();
 
             if (e.KeyCode == Keys.Return)
-                SetCurrentCategoryAsSelected();
+                SetCurrentCategoriesAsSelected();
         }
 
         private void CategoryForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -126,7 +126,7 @@ namespace Photo.org
             //    SetCurrentCategoryAsSelected();
         }
 
-        private void SetCurrentCategoryAsSelected()
+        private void SetCurrentCategoriesAsSelected()
         {
             try
             {
@@ -186,6 +186,12 @@ namespace Photo.org
             }
 
             e.Handled = true;
+        }
+
+        private void lstCategories_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                SetCurrentCategoriesAsSelected();
         }
     }
 }

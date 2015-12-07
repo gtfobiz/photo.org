@@ -43,6 +43,11 @@ namespace Photo.org
             m_MainForm.Controls.Add(m_StatusStrip);
         }
 
+        internal static void SetVisible(bool visible)
+        {
+            m_StatusStrip.Visible = visible;
+        }
+
         internal static void SetText(string text)
         {
             if (text == "")
@@ -100,6 +105,12 @@ namespace Photo.org
         {
             m_ProgressBar.Visible = false;
             Status.Busy = false;
+        }
+
+        internal static void ClearTextStack()
+        {
+            m_TextStack.Clear();
+            SetText("");
         }
 
         internal static void PushText()

@@ -150,9 +150,15 @@ namespace Photo.org
         }
 
         internal void ShowInfo()
-        {            
-            using (Image image = LoadImage())
-                MessageBox.Show(Filename + "\n" + Path + "\n" + GetExifDate(image));
+        {
+            try
+            {
+                using (Image image = LoadImage())
+                    MessageBox.Show(Filename + "\n" + Path + "\n" + GetExifDate(image));
+            }
+            catch
+            {
+            }
         }
 
         internal Photo(string filename)

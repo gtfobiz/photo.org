@@ -543,35 +543,48 @@ namespace Photo.org
 
                 SetPhotoCategory(photos, sender.Category.Id, ((e.KeyState & KeyStates.Shift) == KeyStates.Shift));
             }
-            else if (e.Data.GetDataPresent(typeof(TreeNode)))
+            else if (e.Data.GetDataPresent(typeof(MyTreeNode)))
             {
-                //if (sender.Category.Id == Guids.Unassigned)
-                //    return;
+                if (sender.Category.Id == Guids.Unassigned)
+                    return;
 
-                //MyTreeNode movingNode = (MyTreeNode)e.Data.GetData(typeof(MyTreeNode));
-                //Category movingCategory = movingNode.Category;
+                MyTreeNode movingNode = (MyTreeNode)e.Data.GetData(typeof(MyTreeNode));
+                Category movingCategory = movingNode.Category;
 
-                //if (movingNode == sender || movingNode.Parent == sender)
-                //    return;
+                if (movingNode == sender || movingNode.Parent == sender || movingNode.Category == null)
+                    return;
 
-                //if (MessageBox.Show("Do you want to move category " + movingCategory.Name + " under category " + sender.Text + "?", "", MessageBoxButtons.YesNo) == DialogResult.No)
-                //    return;
+                if (MessageBox.Show("Do you want to move category " + movingCategory.Name + " under category " + sender.Text + "?", "", MessageBoxButtons.YesNo) == DialogResult.No)
+                    return;
 
-                //Database.BeginTransaction();
 
-                //RemoveCategoryPathFromBranch(movingNode);
 
-                //m_  MyTreeView.Nodes.Remove(movingNode);
-                //tn.Nodes.Add(movingNode);
 
-                //CreateCategoryPathForBrach(movingNode);
+                // TODO!!!!!!!!!!!!!!
 
-                //if (sender.Category.Id == Guids.AllFiles)
-                //    Database.UpdateCategory(movingCategory.Id, Guid.Empty, movingCategory.Name);
-                //else
-                //    Database.UpdateCategory(movingCategory.Id, sender.Category.Id, movingCategory.Name);
 
-                //Database.Commit();
+
+
+
+                return;
+
+                // tarkista!!!!!
+
+                Database.BeginTransaction();
+
+                RemoveCategoryPathFromBranch(movingNode);
+
+                m_MyTreeView.Nodes.Remove(movingNode);
+                sender.Nodes.Add(movingNode);
+
+                CreateCategoryPathForBrach(movingNode);
+
+                if (sender.Category.Id == Guids.AllFiles)
+                    Database.UpdateCategory(movingCategory.Id, Guid.Empty, movingCategory.Name);
+                else
+                    Database.UpdateCategory(movingCategory.Id, sender.Category.Id, movingCategory.Name);
+
+                Database.Commit();
             }
         }
 
@@ -598,10 +611,10 @@ namespace Photo.org
             Common.MouseWheelOutsideTreeView(direction > 0);
         }        
 
-        static void m_TreeView_MouseWheelOutsideControl(object sender, short direction)
-        {
-            Common.MouseWheelOutsideTreeView(direction > 0);
-        }        
+        //static void m_TreeView_MouseWheelOutsideControl(object sender, short direction)
+        //{
+        //    Common.MouseWheelOutsideTreeView(direction > 0);
+        //}        
 
         internal static void Populate()
         {
@@ -773,20 +786,20 @@ namespace Photo.org
 
 #endregion        
 
-        private static void RemoveCategoryPathFromBranch(TreeNode node)
+        private static void RemoveCategoryPathFromBranch(MyTreeNode node)
         {
-            Database.DeleteCategoryPathByCategory(new Guid(node.Name));
+            Database.DeleteCategoryPathByCategory(node.Category.Id);
 
-            foreach (TreeNode tn in node.Nodes)
+            foreach (MyTreeNode tn in node.Nodes)
                 RemoveCategoryPathFromBranch(tn);
         }
 
-        private static void CreateCategoryPathForBrach(TreeNode node)
+        private static void CreateCategoryPathForBrach(MyTreeNode node)
         {            
-            foreach (TreeNode tn in node.Nodes)
+            foreach (MyTreeNode tn in node.Nodes)
                 CreateCategoryPathForBrach(tn);
 
-            Guid categoryId = new Guid(node.Name);
+            Guid categoryId = node.Category.Id;
 
             Database.InsertCategoryPath(categoryId, categoryId);
             string temp = node.Text;
@@ -794,7 +807,7 @@ namespace Photo.org
             while (node.Parent != null)
             {
                 node = node.Parent;
-                Database.InsertCategoryPath(new Guid(node.Name), categoryId);
+                Database.InsertCategoryPath(node.Category.Id, categoryId);
             }
         }
 
