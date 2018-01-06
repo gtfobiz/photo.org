@@ -13,7 +13,7 @@ namespace Photo.org
     {
         internal static int ThumbnailSize = 0;
 
-        private static MyListView m_ThumbnailView = null; 
+        private static MyListView m_ThumbnailView = null;
         private static int m_CurrentlyShownPhotoIndex = 0;
 
         public static int CurrentPhotoOrdinalNumber
@@ -55,7 +55,7 @@ namespace Photo.org
             m_ThumbnailView.MouseMove += new MouseEventHandler(m_ThumbnailView_MouseMove);
 
             m_ThumbnailView.Dock = DockStyle.Fill;
-            controlCollection.Add(m_ThumbnailView); 
+            controlCollection.Add(m_ThumbnailView);
 
             Viewer.Initialize(controlCollection);
 
@@ -86,7 +86,7 @@ namespace Photo.org
         static void m_ThumbnailView_PhotoMouseUp(Photo photo, MouseEventArgs e)
         {
             m_MouseDownLocation = Point.Empty;
-        }             
+        }
 
         static void m_ThumbnailView_PhotoMouseDown(Photo photo, MouseEventArgs e)
         {
@@ -94,14 +94,14 @@ namespace Photo.org
 
             if (e.Button == MouseButtons.Left && e.Clicks > 1)
             {
-                ShowPhoto(photo);            
+                ShowPhoto(photo);
             }
             else if (e.Button == MouseButtons.Right && e.Clicks == 1)
             {
                 //ShowContextMenu(new Point(10, 10), photo);
                 ShowContextMenu(e.Location, photo);
             }
-        }             
+        }
 
         /// <summary>
         /// Shows thumbnail list and sets the active component.
@@ -109,7 +109,13 @@ namespace Photo.org
         internal static void Show()
         {
             m_ThumbnailView.Visible = true;
+            EnsureSelectionVisible();
             Status.ActiveComponent = Component.Photos;
+        }
+
+        internal static void EnsureSelectionVisible()
+        {
+            m_ThumbnailView.EnsureSelectionVisible();
         }
 
         /// <summary>
@@ -134,18 +140,41 @@ namespace Photo.org
                 case Keys.Space:
                     if (Status.ReadOnly)
                         return false;
-            //        if (Status.LabelEdit)
-            //            return false;
 
                     List<Photo> photos = new List<Photo>();
                     foreach (Photo photo in m_ThumbnailView.SelectedItems)
                         photos.Add(photo);
                     Categories.ShowCategoryDialog(photos);
                     return true;
+                //case Keys.C:
+                //    EnsureSelectionVisible();
+                //    return true;
                 case Keys.F1:
+                    if (Status.ReadOnly)
+                        return true;
                     return ShowPhotoInfo();
                 case Keys.F2:
+                    if (Status.ReadOnly)
+                        return true;
                     ShowRenameFileDialog();
+                    return true;
+                case Keys.F3:
+                    Categories.ShowCategoryDialog((Common.IsShiftPressed() ? CategoryDialogMode.Omit : CategoryDialogMode.Select));
+                    return true;
+                case Keys.F4:
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Require);
+                    return true;
+                case Keys.F6:
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Hide);
+                    return true;
+                case Keys.F12:
+                    ActivateFeature();
+                    return true;
+                case Keys.PageDown:
+                    m_ThumbnailView.PageDown();
+                    return true;
+                case Keys.PageUp:
+                    m_ThumbnailView.PageUp();
                     return true;
                 case Keys.F:
                     if (e.Control)
@@ -154,6 +183,10 @@ namespace Photo.org
                         return true;
                     }
                     return false;
+                case Keys.O:
+                    if (!Status.ReadOnly)
+                        OpenFile();
+                    return true;
                 case Keys.H:
                     if (!Status.ReadOnly && e.Control)
                     {
@@ -162,18 +195,36 @@ namespace Photo.org
                     }
                     return false;
                 case Keys.Delete:
-                    RemoveSelectedPhotos();
+                    if (!Status.ReadOnly)
+                        RemoveSelectedPhotos();
                     break;
             }
 
             return false;
         }
 
-        // temp test
-        private static void PrintMD5Hash(string p)
+        //private static void EnsureSelectionVisible()
+        //{            
+
+        //}
+
+        private static void ActivateFeature()
         {
-            Image image = Image.FromFile(p);
-            System.Diagnostics.Trace.WriteLine(Common.GetMD5HashForImage(image));
+            string password = Common.InputBox("Activate feature", "Password", true);
+
+            switch (password)
+            {
+                case "p11lokuva":
+                    Status.ShowPrivatePhotos = true;
+                    MessageBox.Show("Private photos are now visible.", "Feature activated");
+                    break;
+                case "muokkau511":
+                    Status.ReadOnly = false;
+                    break;
+                case "":
+                    Status.ReadOnly = true;
+                    break;
+            }
         }
 
         private static void ShowRenameFileDialog()
@@ -309,7 +360,8 @@ namespace Photo.org
 
                 if (f.ShowDialog() == DialogResult.OK)
                 {
-                    Database.SaveParameterText("IMPORT_PATH", f.SelectedPath);
+                    if (!f.SelectedPath.ToLower().Contains("private"))
+                        Database.SaveParameterText("IMPORT_PATH", f.SelectedPath);
                     Settings.ImportPath = f.SelectedPath;
 
                     Import.ImportFolder(f.SelectedPath);
@@ -365,6 +417,23 @@ namespace Photo.org
             return null;
         }
 
+        internal static void SearchByGuid()
+        {
+            string x = Common.InputBox("Search by guid", "Guid", false);
+            if (x == null)
+                return;
+
+            //TODO: poista valinnat puusta
+            //TODO: uusi puu ei toimi esim kannavaihdossa
+
+            FetchPhotos(PhotoSearchMode.Guid, null, x);
+        }
+
+        internal static void FindDuplicateHashes()
+        {
+            FetchPhotos(PhotoSearchMode.DuplicateHashes, null, null);
+        }
+
         /// <summary>
         /// Activates the viewer component and hides the thumbnail view.
         /// </summary>
@@ -383,6 +452,14 @@ namespace Photo.org
             m_CurrentlyShownPhotoIndex = 0;
             Viewer.ShowPhoto(photo);
             m_ThumbnailView.Visible = false;
+        }
+
+        /// <summary>
+        /// Fetches hidden photos
+        /// </summary>
+        internal static void FetchHiddenPhotos()
+        {
+            FetchPhotos(PhotoSearchMode.Hidden, null, null);
         }
 
         /// <summary>
@@ -415,7 +492,7 @@ namespace Photo.org
         /// Fetches photos that belong to all required categories.
         /// </summary>
         /// <param name="required"></param>
-        internal static void FetchPhotos(List<Guid> required, string searchString)
+        internal static void FetchPhotos(PhotoSearchMode searchMode, List<Guid> required, string searchString)
         {
             Viewer.Hide();
             Show();
@@ -429,10 +506,25 @@ namespace Photo.org
             ClearPhotos();           
 
             DataSet ds = null;
-            if (required != null)
-                ds = Database.QueryPhotosByCategories(required);
-            else
-                ds = Database.QueryPhotosByFilename(searchString);
+            switch (searchMode)
+            {
+                case PhotoSearchMode.Categories:
+                case PhotoSearchMode.OmitCategories:
+                    ds = Database.QueryPhotosByCategories(required, (searchMode == PhotoSearchMode.OmitCategories));
+                    break;
+                case PhotoSearchMode.Hidden:
+                    ds = Database.QueryHiddenPhotos();
+                    break;
+                case PhotoSearchMode.Filename:
+                    ds = Database.QueryPhotosByFilename(searchString);
+                    break;
+                case PhotoSearchMode.Guid:
+                    ds = Database.QueryPhotosByGuid(searchString);
+                    break;
+                case PhotoSearchMode.DuplicateHashes:
+                    ds = Database.QueryDuplicateHashes();
+                    break;
+            }
 
             DataRowCollection drc = ds.Tables["Photos"].Rows;
             Status.SetMaxValue(drc.Count);
@@ -463,11 +555,13 @@ namespace Photo.org
                         photo.AutoCategories.Add(guid);
                 }
 
-                AddPhoto(photo);
+                if (Status.ShowPrivatePhotos || !photo.Path.ToLower().Contains("private"))
+                    AddPhoto(photo);
+
                 Status.SetProgress(++i);            
             }
 
-            m_ThumbnailView.EndUpdate();
+            m_ThumbnailView.EndUpdate((searchMode != PhotoSearchMode.DuplicateHashes));
 
             Status.HideProgress();
             ShowPhotoCount();
@@ -482,6 +576,9 @@ namespace Photo.org
 
         private static void ShowContextMenu(Point location, Photo photo)
         {
+            if (Status.ReadOnly)
+                return;
+
             ContextMenu menu = new ContextMenu();
             MenuItem mi = null;
             bool addSeparator = false;            
@@ -528,7 +625,7 @@ namespace Photo.org
             if (addSeparator)                
                 menu.MenuItems.Add("-");
 
-            if (m_ThumbnailView.SelectedItems.Count > 0)
+            if (!Status.ReadOnly && m_ThumbnailView.SelectedItems.Count > 0)
             {
                 mi = new MenuItem();
                 mi.Text = Multilingual.GetText("thumbnailsContextMenu", "copySelectedPhotos", "Copy selected photos");
@@ -580,7 +677,28 @@ namespace Photo.org
         }
 
         private static void CopySelectedPhotos()
-        {            
+        {
+            DataSet ds = new DataSet();
+            ds.Tables.Add("Categories");
+            DataColumnCollection dcc = ds.Tables["Categories"].Columns;
+            dcc.Add("CATEGORY_ID");
+            dcc.Add("PARENT_ID");
+            dcc.Add("NAME");
+            dcc.Add("COLOR");
+
+            ds.Tables.Add("Photos");
+            dcc = ds.Tables["Photos"].Columns;
+            dcc.Add("PHOTO_ID");
+            dcc.Add("FILENAME");            
+
+            ds.Tables.Add("PhotoCategories");
+            dcc = ds.Tables["PhotoCategories"].Columns;
+            dcc.Add("PHOTO_ID");
+            dcc.Add("CATEGORY_ID");
+
+            DataRow dr = null;
+            List<Guid> categories = new List<Guid>();
+
             using (FolderBrowserDialog f = new FolderBrowserDialog())
             {                
                 f.ShowNewFolderButton = true;
@@ -607,9 +725,52 @@ namespace Photo.org
                     }
 
                     File.Copy(photo.FilenameWithPath, path + filename);
+
+                    dr = ds.Tables["Photos"].NewRow();
+                    dr["PHOTO_ID"] = photo.Id;
+                    dr["FILENAME"] = photo.Filename;
+                    ds.Tables["Photos"].Rows.Add(dr);
+
+                    foreach (Guid category in photo.Categories)
+                    {
+                        dr = ds.Tables["PhotoCategories"].NewRow();
+                        dr["PHOTO_ID"] = photo.Id;
+                        dr["CATEGORY_ID"] = category;
+                        ds.Tables["PhotoCategories"].Rows.Add(dr);
+
+                        if (!categories.Contains(category))
+                            categories.Add(category);
+                    }
+                }
+
+                DataTable categoryDataTable = Database.QueryCategories();
+
+                foreach (Guid category in categories)
+                {
+                    Guid category_id = category;
+                    while (category_id != Guid.Empty)
+                    {
+                        if (ds.Tables["Categories"].Select("CATEGORY_ID = '" + category_id.ToString() + "'").Length > 0)
+                            break;
+
+                        DataRow[] categoryDataRow = categoryDataTable.Select("CATEGORY_ID = '" + category_id.ToString() + "'");
+                        if (categoryDataRow.Length == 0)
+                            break;                        
+
+                        dr = ds.Tables["Categories"].NewRow();
+                        dr["CATEGORY_ID"] = category_id;
+                        dr["PARENT_ID"] = categoryDataRow[0]["PARENT_ID"];
+                        dr["NAME"] = categoryDataRow[0]["NAME"];
+                        dr["COLOR"] = categoryDataRow[0]["COLOR"];
+                        ds.Tables["Categories"].Rows.Add(dr);
+
+                        category_id = (Guid)categoryDataRow[0]["PARENT_ID"];
+                    }
                 }
             
                 Status.Busy = false;
+
+                ds.WriteXml(f.SelectedPath + @"\photo.org.xml");
 
                 System.Diagnostics.Process.Start(f.SelectedPath);
             }
@@ -698,14 +859,14 @@ namespace Photo.org
 
         internal static void SearchByFilename()
         {            
-            string x = Common.InputBox("Search string");
+            string x = Common.InputBox("Search by filename", "Search string", false);
             if (x == null)
                 return;
 
             //TODO: poista valinnat puusta
             //TODO: uusi puu ei toimi esim kannavaihdossa
 
-            FetchPhotos(null, x);            
+            FetchPhotos(PhotoSearchMode.Filename, null, x);            
         }
     }
 }

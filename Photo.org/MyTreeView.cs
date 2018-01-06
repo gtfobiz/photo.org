@@ -36,7 +36,7 @@ namespace Photo.org
         private VScrollBar m_ScrollBar = new VScrollBar();
         private MyTreeNode m_NodeBeingRenamed = null;
         private TextBox m_NodeRenameBox = new TextBox();
-        private Timer m_NodeHightlightTimer = null;
+//        private Timer m_NodeHightlightTimer = null;
 
         internal List<MyTreeNode> SelectedNodes
         {
@@ -495,13 +495,7 @@ namespace Photo.org
         internal MyTreeNode Add(object key, string text)
         {
             MyTreeNode node = new MyTreeNode(m_TreeViewControl, key, text);
-            if (!m_TreeViewControl.OnAddNode(node))
-                return null;
-
-            node.Parent = m_Parent;
-            node.TreeViewControl = m_TreeViewControl;
-
-            base.Add(node);
+            Add(node);
             return node;
         }
 
@@ -511,9 +505,10 @@ namespace Photo.org
                 Remove(this[0]);
         }
 
-        new internal void Remove(MyTreeNode node)
+        internal void Remove(MyTreeNode node, bool saveChildNodes)
         {
-            node.Nodes.Clear();
+            if (!saveChildNodes)
+             node.Nodes.Clear();
 
             m_TreeViewControl.OnRemoveNode(node);
 
@@ -523,9 +518,20 @@ namespace Photo.org
             base.Remove(node);
         }
 
+        new internal void Remove(MyTreeNode node)
+        {
+            Remove(node, false);
+        }
+
         new internal void Add(MyTreeNode node)
         {
-            throw new NotSupportedException();
+            if (!m_TreeViewControl.OnAddNode(node))
+                throw new Exception("Failed to add node.");
+
+            node.Parent = m_Parent;
+            node.TreeViewControl = m_TreeViewControl;
+
+            base.Add(node);
         }
     }
 

@@ -269,11 +269,15 @@ namespace Photo.org
 
 #endregion        
 
-        internal static string InputBox(string prompt)
+        internal static string InputBox(string header, string prompt, bool isPassword)
         {
             using (InputBoxForm f = new InputBoxForm())
             {
                 f.Prompt = prompt;
+                if (header != null)
+                    f.Text = header;
+                if (isPassword)
+                    f.IsPassword = true;
                 f.ShowDialog();
                 if (f.DialogResult == DialogResult.Cancel)
                     return null;
@@ -339,6 +343,9 @@ namespace Photo.org
                     case "-x":
                         Status.ShowHiddenCategories = true;
                         break;
+                    //case "-private":
+                    //    Status.ShowPrivatePhotos = true;
+                    //    break;
                     case "-d":
                         nextArgIsDatabaseFilename = true;
                         break;

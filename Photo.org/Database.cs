@@ -452,6 +452,11 @@ namespace Photo.org
             }
         }
 
+        internal static DataSet QueryHiddenPhotos()
+        {
+            return QueryPhotosBySqlWhere("#HIDDEN", null);
+        }
+
         internal static void DeletePhotoCategory(Guid photoId, Guid categoryId)
         {
             using (SQLiteCommand comm = new SQLiteCommand())
@@ -468,6 +473,27 @@ namespace Photo.org
 
 
             }
+        }        
+
+        internal static DataSet QueryPhotosByGuid(string searchString)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            try
+            {
+                parameters.Add("@guid", new Guid(searchString));
+            }
+            catch
+            {
+                return null;
+            }
+            string where = "ph.PHOTO_ID = @guid";
+            return QueryPhotosBySqlWhere(where, parameters);
+        }
+
+        internal static DataSet QueryDuplicateHashes()
+        {
+            string where = "HASH in (select HASH from PHOTO group by HASH having count(*) > 1)";
+            return QueryPhotosBySqlWhere(where, null, "ph.HASH");
         }
 
         internal static void DeletePhoto(Guid photoId)
@@ -533,12 +559,25 @@ namespace Photo.org
 
         private static DataSet QueryPhotosBySqlWhere(string where, Dictionary<string, object> parameters)
         {
+            return QueryPhotosBySqlWhere(where, parameters, null);
+        }
+
+        private static DataSet QueryPhotosBySqlWhere(string where, Dictionary<string, object> parameters, string orderBy)
+        {
             if (!Status.ShowHiddenPhotos)
             {
                 where += (where == "" ? "" : " and ");
                 where += "not exists(select 1 from PHOTO_CATEGORY ";
                 where += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
             }
+            else
+                if (where == "#HIDDEN")
+                {
+                    where = "exists(select 1 from PHOTO_CATEGORY ";
+                    where += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
+                    parameters = new Dictionary<string, object>();
+                    parameters.Add("@hidden", Guids.Hidden);
+                }
 
             string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE, ph.IS_VIDEO ";
             sql += "from PHOTO ph ";
@@ -546,7 +585,10 @@ namespace Photo.org
             sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
             if (where != "")
                 sql += " where " + where;
-            sql += " order by ph.PHOTO_ID";
+            if (orderBy == null)
+                sql += " order by ph.PHOTO_ID";  // order by RANDOM()   LIMIT 10
+            else
+                sql += " order by " + orderBy;
 
             if (!Status.ShowHiddenPhotos)
             {
@@ -617,7 +659,7 @@ namespace Photo.org
         /// </summary>
         /// <param name="categories"></param>
         /// <returns>dataset containing tables for photos and categories</returns>
-        internal static DataSet QueryPhotosByCategories(List<Guid> categories)
+        internal static DataSet QueryPhotosByCategories(List<Guid> categories, bool invertedSearch)
         {
             string requiredSql = "";
 
@@ -634,27 +676,14 @@ namespace Photo.org
                 else
                 {
                     requiredSql += (i == 0 ? "" : " and ");
+                    requiredSql += (invertedSearch ? "not " : "");
                     requiredSql += "exists(select 1 from PHOTO_CATEGORY pcx ";
                     requiredSql += "join CATEGORY_PATH cpx on cpx.CATEGORY_ID = pcx.CATEGORY_ID ";
                     requiredSql += "where pcx.PHOTO_ID = ph.PHOTO_ID and cpx.TARGET_ID = @required" + i.ToString() + ")";
                 }
             }
 
-            //if (!Status.ShowHiddenPhotos)
-            //{
-            //    requiredSql += (requiredSql == "" ? "" : " and ");
-            //    requiredSql += "not exists(select 1 from PHOTO_CATEGORY ";
-            //    requiredSql += "where PHOTO_ID = ph.PHOTO_ID and CATEGORY_ID = @hidden)";
-            //}
-
             Dictionary<string, object> parameters = new Dictionary<string, object>();
-            //string sql = "select ph.PHOTO_ID, pa.PATH, ph.FILENAME, ph.FILESIZE, pc.CATEGORY_ID, ph.IMPORT_DATE, pc.SOURCE ";
-            //sql += "from PHOTO ph ";
-            //sql += "join PATH pa on pa.PATH_ID = ph.PATH_ID ";
-            //sql += "left join PHOTO_CATEGORY pc on pc.PHOTO_ID = ph.PHOTO_ID ";
-            //if (requiredSql != "")
-            //    sql += " where " + requiredSql;
-            //sql += " order by ph.PHOTO_ID";
 
             for (int i = 0; i < categories.Count; i++)
             {
@@ -662,60 +691,7 @@ namespace Photo.org
                     parameters.Add("@required" + i.ToString(), categories[i]);
             }
 
-            return QueryPhotosBySqlWhere(requiredSql, parameters);
-
-            //if (!Status.ShowHiddenPhotos)
-            //{
-            //    parameters.Add("@hidden", Guids.Hidden);
-            //}
-
-            //DataTable dt = Query(sql, parameters);
-            //DataSet ds = new DataSet();
-
-            //ds.Tables.Add("Photos");
-            //DataColumnCollection dcc = ds.Tables["Photos"].Columns;
-            //dcc.Add("PHOTO_ID");
-            //dcc.Add("PATH");
-            //dcc.Add("FILENAME");
-            //dcc.Add("FILESIZE");
-            //dcc.Add("IMPORT_DATE");
-
-            //ds.Tables.Add("Categories");
-            //dcc = ds.Tables["Categories"].Columns;
-            //dcc.Add("PHOTO_ID");
-            //dcc.Add("CATEGORY_ID");
-            //dcc.Add("SOURCE");
-
-            //Guid photoId = Guid.Empty, lastPhotoId = Guid.Empty;
-            //DataRow resultRow = null;
-
-            //foreach (DataRow dr in dt.Rows)
-            //{ 
-            //    photoId = new Guid(dr["PHOTO_ID"].ToString());
-            //    if (photoId != lastPhotoId)
-            //    {
-            //        lastPhotoId = photoId;
-
-            //        resultRow = ds.Tables["Photos"].NewRow();
-            //        resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
-            //        resultRow["PATH"] = dr["PATH"];
-            //        resultRow["FILENAME"] = dr["FILENAME"];
-            //        resultRow["FILESIZE"] = dr["FILESIZE"];
-            //        resultRow["IMPORT_DATE"] = dr["IMPORT_DATE"];
-            //        ds.Tables["Photos"].Rows.Add(resultRow);                    
-            //    }
-
-            //    if (dr["CATEGORY_ID"].ToString() != "")
-            //    {
-            //        resultRow = ds.Tables["Categories"].NewRow();
-            //        resultRow["PHOTO_ID"] = dr["PHOTO_ID"];
-            //        resultRow["CATEGORY_ID"] = dr["CATEGORY_ID"];
-            //        resultRow["SOURCE"] = dr["SOURCE"];
-            //        ds.Tables["Categories"].Rows.Add(resultRow);
-            //    }
-            //}
-
-            //return ds;
+            return QueryPhotosBySqlWhere(requiredSql, parameters);            
         }
 
         //TODO: importin aikana ja jälkeen näkyy alhaal kuvien aikaisempi määrä
@@ -810,7 +786,6 @@ namespace Photo.org
                     comm.ExecuteNonQuery();
 
                     CreatePhotoCategoryTrigger();
-                    Categories.InsertTestCategories();
                 }
 
                 System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(m_ThumbnailPath);
@@ -1167,6 +1142,16 @@ namespace Photo.org
                 orphanBranches = comm.ExecuteNonQuery();
             }
 
+            Status.SetText("Fixing empty category names...");
+            using (SQLiteCommand comm = new SQLiteCommand())
+            {
+                sql = "update CATEGORY set NAME = '(empty)' where NAME = ''";
+
+                comm.Connection = m_Connection;
+                comm.CommandText = sql;
+                comm.ExecuteNonQuery();
+            }
+
             Status.SetText("Deleting orphan thumbnail files...");
 
             // delete orphan thumbnail files
@@ -1229,7 +1214,13 @@ namespace Photo.org
         internal static bool HashAlreadyExists(string hash)
         {
             object o = GetOne("select 1 from PHOTO where HASH = '" + hash + "'");
-            return (o == null || o.ToString() == "1");
+
+            if (o == null)
+                return false;
+
+            return (o.ToString() == "1");
+
+            //return (o == null || o.ToString() == "1");
         }
 
         internal static Dictionary<Guid, string> QueryPaths()

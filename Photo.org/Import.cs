@@ -18,17 +18,29 @@ namespace Photo.org
         {
             int i = 0;
             FileInfo fi = null;
-            string path = "";
-            Photo photo = null;
-            string extension = "", lastPath = "";
+            string path = "", extension = "", lastPath = "";
+            Photo photo = null;           
             List<string> existingFiles = null;
             Guid pathId = Guid.Empty;
+            bool hasImportInfo = false;
+            DataSet importInfo = new DataSet();
 
             Thumbnails.ClearPhotos();
             Categories.RemoveSelections();
 
             Status.ShowProgress();
             Database.BeginTransaction();
+
+            if (File.Exists(folder + (folder.EndsWith(@"\") ? "" : @"\") + "photo.org.xml"))
+            {
+                hasImportInfo = true;
+                importInfo.ReadXml(folder + (folder.EndsWith(@"\") ? "" : @"\") + "photo.org.xml");
+
+                foreach (DataRow dr in importInfo.Tables["Categories"].Rows)
+                {
+                    AddImportedCategory(dr.Table, new Guid(dr["CATEGORY_ID"].ToString()), new Guid(dr["PARENT_ID"].ToString()));
+                }
+            }
 
             string[] files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories);
 
@@ -82,36 +94,34 @@ namespace Photo.org
                         {
                             if (photo.Hash != null)
                             {
-                                bool photoAlreadyExists = false;
+                                //bool photoAlreadyExists = false;
                                 if (Database.HashAlreadyExists(photo.Hash))
+                                {
                                     foreach (Photo p in Database.GetPhotosByHash(photo.Hash))
                                         if (!File.Exists(p.FilenameWithPath) && (p.Filename.ToLower() == photo.Filename.ToLower() || p.FileSize == photo.FileSize))
                                         {
                                             Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
-                                            photoAlreadyExists = true;
+                                            //photoAlreadyExists = true;
                                             break;
                                         }
+                                }
+                                else
+                                //if (!photoAlreadyExists)
+                                {
+                                    if (hasImportInfo)
+                                    {
+                                        DataRow[] dr = importInfo.Tables["Photos"].Select("FILENAME = '" + photo.Filename + "'");
+                                        //if (dr.Length > 0)
+                                            photo.Id = new Guid(dr[0]["PHOTO_ID"].ToString());
+                                    }
 
-                                if (!photoAlreadyExists)
                                     Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height, photo.IsVideo);
 
-                                //try
-                                //{
-                                //    Database.InsertPhoto(photo.Id, pathId, photo.Filename, photo.FileSize, photo.Hash, photo.Width, photo.Height);
-                                //}
-                                //catch (Exception e)
-                                //{
-                                //    if (e.Message.Contains("HASH"))
-                                //    {
-                                //        Photo p = Database.GetPhotoByHash(photo.Hash);
-                                //        if (!File.Exists(p.FilenameWithPath))
-                                //            Database.UpdatePhotoLocation(p.Id, photo.Path, photo.Filename);
-                                //    }
-                                //    else
-                                //    {
-                                //        throw e;
-                                //    }
-                                //}
+                                    foreach (DataRow dr in importInfo.Tables["PhotoCategories"].Select("PHOTO_ID ='" + photo.Id.ToString() + "'"))
+                                    {
+                                        Categories.AddPhotoCategory(photo, new Guid(dr["CATEGORY_ID"].ToString()));
+                                    }
+                                }                                
                             }
                         }
                     }
@@ -125,6 +135,27 @@ namespace Photo.org
             Database.Commit();
             Status.HideProgress();
             Status.ClearTextStack();
+
+            Categories.Refresh();
+        }
+
+        private static void AddImportedCategory(DataTable categories, Guid categoryId, Guid parentId)
+        {
+            if (categoryId == Guid.Empty)
+                return;
+
+            if (Categories.GetCategoryByGuid(categoryId) != null)
+                return;
+
+            if (Categories.GetCategoryByGuid(parentId) == null)
+            {
+                DataRow[] rows = categories.Select("CATEGORY_ID = '" + parentId.ToString() + "'");
+                if (rows.Length > 0)
+                    AddImportedCategory(categories, parentId, new Guid(rows[0]["PARENT_ID"].ToString()));
+            }
+
+            DataRow[] rows1 = categories.Select("CATEGORY_ID = '" + categoryId.ToString() + "'");
+            Categories.AddCategory(categoryId, parentId, rows1[0]["NAME"].ToString(), long.Parse(rows1[0]["COLOR"].ToString()));
         }
     }
 }

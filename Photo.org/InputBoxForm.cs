@@ -16,6 +16,13 @@ namespace Photo.org
             InitializeComponent();
         }
 
+        public bool IsPassword {
+            set
+            {
+                f_InputText.PasswordChar = (value ? '*': ' ');
+            }
+        }
+
         public string InputText {
             get
             {

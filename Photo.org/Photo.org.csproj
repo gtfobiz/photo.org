@@ -167,6 +167,9 @@
     <EmbeddedResource Include="testbed.resx">
       <DependentUpon>testbed.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="UpdateRootForm.resx">
+      <DependentUpon>UpdateRootForm.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -181,9 +184,13 @@
     <Compile Include="CustomTreeView.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Viewer.cs">
-      <SubType>Component</SubType>
+    <Compile Include="UpdateRootForm.cs">
+      <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UpdateRootForm.Designer.cs">
+      <DependentUpon>UpdateRootForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Viewer.cs" />
     <Compile Include="Worklist.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -193,6 +200,25 @@
   <ItemGroup>
     <EmbeddedResource Include="minus.png" />
     <EmbeddedResource Include="plus.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="AxWMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="WMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -66,7 +66,7 @@
             this.KeyPreview = true;
             this.Name = "CategoryForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "CategoryForm";
+            this.Text = "Categories";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CategoryForm_FormClosing);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CategoryForm_KeyDown);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.CategoryForm_KeyPress);

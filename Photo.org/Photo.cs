@@ -284,7 +284,7 @@ namespace Photo.org
             foreach (PropertyItem pi in image.PropertyItems)
             {
                 if (pi.Id.ToString("x") == "9003")
-                    return System.Text.Encoding.Default.GetString(pi.Value);
+                    return Encoding.Default.GetString(pi.Value);
             }
 
             return "";

@@ -31,5 +31,22 @@ namespace Photo.org
         {
             return ((ModifierKeys & Keys.Alt) == Keys.Alt);
         }
+
+        protected override void WndProc(ref Message m)
+        {
+            //if (m.Msg == 0x020A)
+            //{
+            //    switch (Status.ActiveComponent)
+            //    {
+            //        case Component.Viewer:
+            //            int y = 1;
+            //            break;
+            //    }
+
+            //    int x = 1;
+            //}
+
+            base.WndProc(ref m);
+        }
     }
 }

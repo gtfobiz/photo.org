@@ -174,11 +174,29 @@ namespace Photo.org
                     Categories.ShowCategoryDialog(photos);
                     return true;
                 case Keys.F1:
+                    if (Status.ReadOnly)
+                        return true;
                     ShowPhotoInfo();
+                    return true;
+                case Keys.F3:
+                    Categories.ShowCategoryDialog((Common.IsShiftPressed() ? CategoryDialogMode.Omit : CategoryDialogMode.Select));
+                    return true;
+                case Keys.F4:
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Require);
+                    return true;
+                case Keys.F6:
+                    Categories.ShowCategoryDialog(CategoryDialogMode.Hide);
                     return true;
                 case Keys.F8:
                     StartSlideShow();
-                    return true; 
+                    return true;
+                case Keys.O:
+                    if (!Status.ReadOnly)
+                        System.Diagnostics.Process.Start(m_Photo.FilenameWithPath);
+                    return true;
+                case Keys.M:
+                    ShowOnMap();
+                    return true;
                 case Keys.H:
                     if (!Status.ReadOnly && e.Control)
                     {
@@ -187,14 +205,20 @@ namespace Photo.org
                     }
                     return false;
                 case Keys.Add:
+                    if (Status.ReadOnly)
+                        return false;
                     photoList.Add(m_Photo);
                     Categories.SetPhotoCategory(photoList, Categories.LastCategoryId, false);
                     return true;
                 case Keys.Subtract:
+                    if (Status.ReadOnly)
+                        return false;
                     photoList.Add(m_Photo);
                     Categories.SetPhotoCategory(photoList, Categories.LastCategoryId, true);
                     return true;
                 case Keys.Delete:
+                    if (Status.ReadOnly)
+                        return false;
                     RemovePhoto();
                     return true;
                 case Keys.F11:                    
@@ -202,6 +226,58 @@ namespace Photo.org
                     return true;
             }
             return false;
+        }
+
+        private static void ShowOnMap()
+        {
+            if (!HasGPSData())
+                return;
+
+            // t is the map type ("m" map, "k" satellite, "h" hybrid, "p" terrain, "e" GoogleEarth)
+
+            string s = "https://www.google.com/maps?z=15&t=h&q=loc:"
+                + ExifGpsToDouble(m_Image.GetPropertyItem(1), m_Image.GetPropertyItem(2)).ToString().Replace(',', '.')
+                + "+"
+                + ExifGpsToDouble(m_Image.GetPropertyItem(3), m_Image.GetPropertyItem(4)).ToString().Replace(',', '.');
+
+            System.Diagnostics.Process.Start(s);
+        }
+
+        private static double ExifGpsToDouble(System.Drawing.Imaging.PropertyItem propItemRef, System.Drawing.Imaging.PropertyItem propItem)
+        {
+            double degreesNumerator = BitConverter.ToUInt32(propItem.Value, 0);
+            double degreesDenominator = BitConverter.ToUInt32(propItem.Value, 4);
+            double degrees = degreesNumerator / (double)degreesDenominator;
+
+            double minutesNumerator = BitConverter.ToUInt32(propItem.Value, 8);
+            double minutesDenominator = BitConverter.ToUInt32(propItem.Value, 12);
+            double minutes = minutesNumerator / (double)minutesDenominator;
+
+            double secondsNumerator = BitConverter.ToUInt32(propItem.Value, 16);
+            double secondsDenominator = BitConverter.ToUInt32(propItem.Value, 20);
+            double seconds = secondsNumerator / (double)secondsDenominator;
+
+
+            double coordinate = degrees + (minutes / 60d) + (seconds / 3600d);
+            string gpsRef = System.Text.Encoding.ASCII.GetString(new byte[1] { propItemRef.Value[0] }); //N, S, E, or W
+            if (gpsRef == "S" || gpsRef == "W")
+                coordinate = coordinate * -1;
+            return coordinate;
+        }
+
+        private static bool HasGPSData()
+        {
+            string id = "";
+            string found = "";
+
+            foreach (PropertyItem pi in m_Image.PropertyItems)
+            {
+                id = pi.Id.ToString("x");
+                if (id == "1" || id == "2" || id == "3" || id == "4")
+                    found += id;
+            }
+
+            return (found.Contains("1") && found.Contains("2") && found.Contains("3") && found.Contains("4"));
         }
 
         private static void SetFullscreenViewer(bool state)
@@ -212,6 +288,9 @@ namespace Photo.org
 
         private static void RemovePhoto()
         {
+            if (Status.ReadOnly)
+                return;
+
             bool recycle = Common.IsShiftPressed();
 
             if (recycle)
@@ -225,13 +304,13 @@ namespace Photo.org
                     return;
             }
 
+            HideViewer();
+
             Status.Busy = true;
 
             Thumbnails.RemovePhoto(m_Photo, recycle, true);
 
-            Status.Busy = false;
-
-            HideViewer();
+            Status.Busy = false;            
         }
 
         private static void HidePhoto(bool hide)
@@ -288,7 +367,7 @@ namespace Photo.org
                 StopSlideShow();
                 return;
             }
-            ShowPhoto(photo);
+            ShowPhoto(photo);            
         }
 
         internal static void Hide()
@@ -442,7 +521,8 @@ namespace Photo.org
                     m_FilenameLabel.Text = m_Photo.Filename + "  ("
                         + size.Width.ToString() + " x "
                         + size.Height.ToString() + ", "
-                        + Common.GetFileSizeString(m_Photo.FileSize) + ")  ["
+                        + Common.GetFileSizeString(m_Photo.FileSize) + 
+                        (HasGPSData() ? ", @" : "") + ")  ["
                         + (Thumbnails.CurrentPhotoOrdinalNumber).ToString() + " / "
                         + Thumbnails.NumberOfPhotos.ToString() + "]";
 
@@ -507,13 +587,10 @@ namespace Photo.org
 
         static void label_MouseClick(object sender, MouseEventArgs e)
         {
-            if (Status.ReadOnly)
-                return;
-
             if (e.Button != MouseButtons.Right || e.Clicks != 1)
                 return;
 
-            if (Common.IsShiftPressed())
+            if (Common.IsShiftPressed() && !Status.ReadOnly)
             {
                 RemovePhotoCategory((sender as CategoryLabel).Category.Id);
                 return;
@@ -539,11 +616,14 @@ namespace Photo.org
             mi.Click += new EventHandler(mi_Click);
             menu.MenuItems.Add(mi);
 
-            mi = new MenuItem();
-            mi.Text = Multilingual.GetText("viewerLabelContextMenu", "removeCategory", "Remove category");
-            mi.Name = "RemoveCategory";
-            mi.Click += new EventHandler(mi_Click);
-            menu.MenuItems.Add(mi);            
+            if (!Status.ReadOnly)
+            { 
+                mi = new MenuItem();
+                mi.Text = Multilingual.GetText("viewerLabelContextMenu", "removeCategory", "Remove category");
+                mi.Name = "RemoveCategory";
+                mi.Click += new EventHandler(mi_Click);
+                menu.MenuItems.Add(mi);
+            }
 
             m_ActiveCategoryLabel = categoryLabel;
             menu.Show(categoryLabel, location);            

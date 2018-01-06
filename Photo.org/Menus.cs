@@ -20,10 +20,13 @@ namespace Photo.org
             m_MenuStrip.Items.Add(menu);
             ToolStripMenuItem parent = menu;
 
-            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileAddImages", "&Add images..."));
-            menu.Name = "File_AddImages";
-            menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);
+            if (!Status.ReadOnly)
+            {
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "fileAddImages", "&Add images..."));
+                menu.Name = "File_AddImages";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+            }
 
             //parent.DropDownItems.Add(new ToolStripSeparator());
 
@@ -143,20 +146,44 @@ namespace Photo.org
             menu.Click += new EventHandler(menu_Click);
             parent.DropDownItems.Add(menu);
 
-            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsMaintenance", "&Maintenance"));
-            menu.Name = "Tools_Maintenance";
-            menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);
+            if (!Status.ReadOnly)
+            {
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsSearchByGuid", "Search by &guid"));
+                menu.Name = "Tools_SearchByGuid";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
 
-            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsRepairAutoCategories", "&Repair auto categories"));
-            menu.Name = "Tools_RepairAutoCategories";
-            menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsFindDuplicateHashes", "Find &duplicate hashes"));
+                menu.Name = "Tools_FindDuplicateHashes";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+            }
 
-            menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsUpdateRootFolder", "&Update root folder"));
-            menu.Name = "Tools_UpdateRootFolder";
-            menu.Click += new EventHandler(menu_Click);
-            parent.DropDownItems.Add(menu);
+            if (Status.ShowHiddenPhotos)
+            {
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsFetchHiddenPhotos", "Fetch &hidden photos"));
+                menu.Name = "Tools_FetchHiddenPhotos";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+            }
+
+            if (!Status.ReadOnly)
+            {
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsMaintenance", "&Maintenance"));
+                menu.Name = "Tools_Maintenance";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsRepairAutoCategories", "&Repair auto categories"));
+                menu.Name = "Tools_RepairAutoCategories";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+
+                menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsUpdateRootFolder", "&Update root folder"));
+                menu.Name = "Tools_UpdateRootFolder";
+                menu.Click += new EventHandler(menu_Click);
+                parent.DropDownItems.Add(menu);
+            }
 
             menu = new ToolStripMenuItem(Multilingual.GetText("menu", "toolsStatistics", "&Statistics"));
             menu.Name = "Tools_Statistics";
@@ -265,7 +292,7 @@ namespace Photo.org
                     break;
                 case "File_Exit":
                     Common.Exit();
-                    break;                
+                    break;
                 case "Tools_Maintenance":
                     if (!Status.ReadOnly)
                         Database.DoMaintenance();
@@ -276,10 +303,19 @@ namespace Photo.org
                     break;
                 case "Tools_Statistics":
                     Database.ShowStatistics();
+                    break;                
+                case "Tools_FetchHiddenPhotos":
+                    Thumbnails.FetchHiddenPhotos();
                     break;
                 case "Tools_SearchByFilename":
                     Thumbnails.SearchByFilename();
                     break;
+                case "Tools_SearchByGuid":
+                    Thumbnails.SearchByGuid();
+                    break;
+                case "Tools_FindDuplicateHashes":
+                    Thumbnails.FindDuplicateHashes();
+                    break;                    
                 case "Tools_UpdateRootFolder":
                     UpdateRootFolder();
                     break;

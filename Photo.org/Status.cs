@@ -12,7 +12,8 @@ namespace Photo.org
         internal static bool LabelEdit = false;
         internal static bool ReadOnly = false;
         internal static bool ShowHiddenPhotos = false;
-        internal static bool ShowHiddenCategories = false; 
+        internal static bool ShowHiddenCategories = false;
+        internal static bool ShowPrivatePhotos = false;
 
         private static MainForm m_MainForm = null;
         private static StatusStrip m_StatusStrip = new StatusStrip();
